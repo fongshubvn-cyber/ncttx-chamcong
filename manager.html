@@ -388,21 +388,41 @@ function openEmpModal(empStr) {
 
 function renderChecklistDetail(data) {
   if (!data || !Array.isArray(data) || !data.length) return '';
-  const phases = data.map(phase => {
+  const phaseTitles = ['Đầu ca', 'Giữa ca', 'Cuối ca'];
+
+  // Flat format: [{phase, task, done}]
+  const isFlat = data[0] && 'task' in data[0];
+  let grouped = [];
+  if (isFlat) {
+    const map = {};
+    data.forEach(item => {
+      const p = item.phase ?? 0;
+      if (!map[p]) map[p] = { phase: p, title: phaseTitles[p] || ('Phase ' + p), tasks: [] };
+      map[p].tasks.push({ text: item.task, done: item.done });
+    });
+    grouped = Object.values(map).sort((a,b) => a.phase - b.phase);
+  } else {
+    // Nested format: [{phase, title, tasks:[{text, done}]}]
+    grouped = data;
+  }
+
+  const phases = grouped.map(phase => {
     const tasks = (phase.tasks || []).map(t => {
       const done = typeof t === 'object' ? t.done : false;
-      const text = typeof t === 'object' ? t.text : t;
-      return `<div class="flex items-center gap-2 py-1 text-sm ${done?'':'opacity-40'}">
+      const text = typeof t === 'object' ? (t.text || t.task) : t;
+      return `<div class="flex items-center gap-2 py-1 text-sm">
         <span>${done ? '✅' : '⬜'}</span>
-        <span class="${done?'text-gray-700':'text-gray-400'}">${text}</span>
+        <span class="${done ? 'text-gray-700' : 'text-gray-400'}">${text}</span>
       </div>`;
     }).join('');
-    const doneCnt = (phase.tasks||[]).filter(t => typeof t==='object'?t.done:false).length;
-    return `<div class="mb-2">
-      <div class="text-xs font-bold hd mb-1" style="color:#2D6A4F">${phase.title||'Phase'} <span class="font-normal text-gray-400">(${doneCnt}/${(phase.tasks||[]).length})</span></div>
+    const doneCnt = (phase.tasks||[]).filter(t => typeof t==='object' ? t.done : false).length;
+    const total = (phase.tasks||[]).length;
+    return `<div class="mb-3">
+      <div class="text-xs font-bold hd mb-1" style="color:#2D6A4F">${phase.title||'Phase'} <span class="font-normal text-gray-400">(${doneCnt}/${total})</span></div>
       ${tasks}
     </div>`;
   }).join('');
+
   return `<div class="p-3 rounded-xl text-sm" style="background:#f8fffe;border:1.5px solid #52B788">
     <span class="text-xs font-bold block mb-2" style="color:#1B4332">📋 Chi tiết checklist</span>
     ${phases}
