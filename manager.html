@@ -376,13 +376,37 @@ function openEmpModal(empStr) {
         <div class="hd font-semibold" style="color:${pct>=80?'#38A169':pct>=50?'#DD6B20':'#9ca3af'}">${pct}%</div>
       </div>
     </div>
+    ${renderChecklistDetail(currentEmp.checklistData)}
     ${currentEmp.notes?`<div class="p-3 rounded-xl text-sm" style="background:#f0fdf4;border:1.5px solid #86efac;"><span class="text-xs font-bold text-green-700 block mb-1">📝 Tự đánh giá</span>${currentEmp.notes}</div>`:''}
-    ${currentEmp.photoLinks&&currentEmp.photoLinks.length?`<div class="p-3 rounded-xl" style="background:#f0fdf4;border:1.5px solid #86efac;"><span class="text-xs font-bold text-green-700 block mb-2">📷 Ảnh (${currentEmp.photoLinks.length})</span><div class="flex gap-2 overflow-x-auto">${currentEmp.photoLinks.map(u=>`<a href="${u}" target="_blank" class="text-blue-600 text-xs underline">Xem ảnh</a>`).join('')}</div></div>`:''}
+    ${currentEmp.photoLinks&&currentEmp.photoLinks.length?`<div class="p-3 rounded-xl" style="background:#f0fdf4;border:1.5px solid #86efac;"><span class="text-xs font-bold text-green-700 block mb-2">📷 Ảnh (${currentEmp.photoLinks.length})</span><div class="flex gap-2 flex-wrap">${currentEmp.photoLinks.map((u,i)=>`<a href="${u}" target="_blank" class="text-blue-600 text-xs underline">Ảnh ${i+1}</a>`).join('')}</div></div>`:''}
   `;
   renderScoreRow('s-attitude','attitude');
   renderScoreRow('s-completion','completion');
   document.getElementById('s-note').value = currentEmp.managerNotes || '';
   document.getElementById('modal-emp').classList.remove('hidden');
+}
+
+function renderChecklistDetail(data) {
+  if (!data || !Array.isArray(data) || !data.length) return '';
+  const phases = data.map(phase => {
+    const tasks = (phase.tasks || []).map(t => {
+      const done = typeof t === 'object' ? t.done : false;
+      const text = typeof t === 'object' ? t.text : t;
+      return `<div class="flex items-center gap-2 py-1 text-sm ${done?'':'opacity-40'}">
+        <span>${done ? '✅' : '⬜'}</span>
+        <span class="${done?'text-gray-700':'text-gray-400'}">${text}</span>
+      </div>`;
+    }).join('');
+    const doneCnt = (phase.tasks||[]).filter(t => typeof t==='object'?t.done:false).length;
+    return `<div class="mb-2">
+      <div class="text-xs font-bold hd mb-1" style="color:#2D6A4F">${phase.title||'Phase'} <span class="font-normal text-gray-400">(${doneCnt}/${(phase.tasks||[]).length})</span></div>
+      ${tasks}
+    </div>`;
+  }).join('');
+  return `<div class="p-3 rounded-xl text-sm" style="background:#f8fffe;border:1.5px solid #52B788">
+    <span class="text-xs font-bold block mb-2" style="color:#1B4332">📋 Chi tiết checklist</span>
+    ${phases}
+  </div>`;
 }
 
 function renderScoreRow(cid, key) {
