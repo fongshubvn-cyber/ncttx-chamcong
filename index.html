@@ -47,10 +47,10 @@
       <p class="text-green-200 text-sm mt-1 font-heading">Nhà của Thời Thanh Xuân</p>
     </div>
     <div class="card w-full max-w-sm p-6">
-      <h2 class="font-heading text-lg font-bold text-slate mb-4 text-center">Đăng nhập nhân viên</h2>
-      <input id="l-name" class="input mb-3" type="text" placeholder="👤  Họ và tên">
-      <input id="l-id"   class="input mb-4" type="text" placeholder="🔑  Mã nhân viên (VD: NV001)">
-      <button class="btn-primary" onclick="doLogin()">Đăng nhập 🍃</button>
+      <h2 class="font-heading text-lg font-bold text-slate mb-1 text-center">Đăng nhập nhân viên</h2>
+      <p class="text-gray-400 text-xs text-center mb-4">Nhập mã 6 số nhận từ lễ tân</p>
+      <input id="l-code" class="input mb-4 text-center text-2xl font-heading font-bold tracking-widest" type="text" placeholder="_ _ _ _ _ _" maxlength="6" inputmode="numeric">
+      <button class="btn-primary" onclick="doLogin()">Vào ca 🍃</button>
       <p id="l-err" class="text-danger text-center text-sm mt-3 hidden"></p>
     </div>
     <a href="manager.html" class="text-green-300 text-sm mt-5 font-heading">Trang quản lý →</a>
@@ -299,19 +299,29 @@ function go(id) {
 
 // ── Login ──
 async function doLogin() {
-  const name = document.getElementById('l-name').value.trim();
-  const id   = document.getElementById('l-id').value.trim();
+  const code = document.getElementById('l-code').value.trim();
   const err  = document.getElementById('l-err');
   err.classList.add('hidden');
-  if (!name || !id) { showErr(err, '⚠️ Vui lòng nhập đủ tên và mã nhân viên'); return; }
+  if (!code || code.length !== 6) { showErr(err, '⚠️ Vui lòng nhập đúng mã 6 số'); return; }
+
+  // Lấy GPS trước khi gửi
+  let gps = null;
   try {
-    const res = await api('login', { employee: { name, id } });
+    const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+    gps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  } catch(_) {}
+
+  try {
+    const res = await api('loginWithCode', { code, gps });
     if (res.success) {
       S.employee = res.data;
+      S.status   = 'working';
+      S.checkInTime    = new Date().toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
+      S.checkInTimeISO = new Date().toISOString();
       await loadChecklist();
       go('dash');
     } else {
-      showErr(err, res.message || 'Đăng nhập thất bại');
+      showErr(err, res.message || 'Mã không hợp lệ hoặc đã hết hạn');
     }
   } catch(e) { showErr(err, '🌐 Lỗi kết nối mạng'); }
 }
