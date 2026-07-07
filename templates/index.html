@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Chấm công & Checklist Chấm Chéo</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="dark-theme">
+    <div id="app-container">
+        
+        <!-- ================= MÀN HÌNH ĐĂNG NHẬP ================= -->
+        <section id="login-view" class="view-section active">
+            <div class="login-card-clean">
+                <div class="login-header">
+                    <img src="/static/logo.png" alt="Thời Thanh Xuân" class="login-brand-logo">
+                    <h2 class="login-title">Đăng nhập nhân viên</h2>
+                    <p class="login-subtitle">Nhập mã 6 ký tự để bắt đầu ca làm</p>
+                </div>
+                <form id="login-form">
+                    <div class="login-input-wrapper">
+                        <input type="text" id="login-code" placeholder="- - - - - -" maxlength="6" required autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn-login-submit" id="login-submit-btn">
+                        Vào ca 🍃
+                    </button>
+                    <div id="login-error" class="error-msg hide"></div>
+                </form>
+                <div class="login-footer">
+                    <p>Mã quản lý: 123456 • Nhân viên: FT1001, FT1002, PT2001</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= MÀN HÌNH NHÂN VIÊN (STAFF) ================= -->
+        <section id="staff-view" class="view-section">
+            <header class="app-header glass">
+                <div class="header-left">
+                    <img src="/static/logo.png" alt="Thời Thanh Xuân" class="header-logo">
+                    <div class="user-info-bar">
+                        <div class="user-avatar"><i class="fa-solid fa-user-tie"></i></div>
+                        <div>
+                            <h2 id="staff-user-name">Tên Nhân Viên</h2>
+                            <span class="badge badge-role" id="staff-user-role">Fulltime</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="staff-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+                </div>
+            </header>
+
+            <div class="staff-layout container">
+                <!-- Navigation Tabs -->
+                <nav class="tab-nav glass">
+                    <button class="tab-btn active" data-target="staff-time-tab"><i class="fa-solid fa-clock"></i> Chấm Công</button>
+                    <button class="tab-btn" data-target="staff-checklist-tab" id="nav-checklist-tab"><i class="fa-solid fa-list-check"></i> Checklist Chấm Chéo</button>
+                </nav>
+
+                <!-- Tab Content: Chấm Công -->
+                <div id="staff-time-tab" class="tab-content active">
+                    <!-- Banner thông báo trách nhiệm vệ sinh khu vực phụ trách -->
+                    <div id="hygiene-notice-banner" class="alert-box hide" style="margin-bottom: 20px; padding: 16px; border-radius: var(--radius-md); font-size: 0.9rem; display: flex; align-items: center; gap: 12px; font-weight: 500; border: 1px solid transparent;">
+                        <!-- Nội dung thông báo động -->
+                    </div>
+
+                    <div class="card-grid">
+                        <!-- Clock in card -->
+                        <div class="card glass text-center checkin-card">
+                            <h3>BẮT ĐẦU CA LÀM VIỆC</h3>
+                            <p class="text-muted">Chọn khu vực bạn được phân công làm việc hôm nay trước khi check-in</p>
+                            
+                            <div class="form-group area-select-group">
+                                <label for="checkin-area-select"><i class="fa-solid fa-map-location-dot"></i> Khu vực làm việc hôm nay:</label>
+                                <select id="checkin-area-select" class="form-control">
+                                    <!-- Dynamic Options -->
+                                </select>
+                            </div>
+                            
+                            <div class="clock-display" id="clock-time">00:00:00</div>
+                            <div class="clock-date" id="clock-date">Thứ hai, 06 Tháng 7, 2026</div>
+
+                            <button id="clock-toggle-btn" class="btn btn-checkin btn-lg">
+                                <i class="fa-solid fa-circle-play"></i> CHECK-IN VÀO CA
+                            </button>
+                            
+                            <div class="shift-info hide" id="shift-info">
+                                <p><i class="fa-solid fa-circle-dot text-success"></i> Trạng thái: <span class="text-success font-weight-bold">Đang trong ca làm việc</span></p>
+                                <p>Thời gian bắt đầu: <span id="shift-start-time">-</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Lịch sử chấm công cá nhân -->
+                        <div class="card glass">
+                            <h3>Nhật ký làm việc hôm nay</h3>
+                            <div class="history-list" id="staff-today-logs">
+                                <div class="empty-state">Chưa ghi nhận hoạt động nào hôm nay.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Checklist Chấm Chéo -->
+                <div id="staff-checklist-tab" class="tab-content">
+                    <div class="checklist-header glass">
+                        <div>
+                            <h3><i class="fa-solid fa-shuffle text-primary"></i> Ca Chấm Chéo Khu Vực</h3>
+                            <p class="text-muted">Hệ thống đã chỉ định bạn kiểm tra và chấm điểm cho khu vực:</p>
+                            <h2 class="assigned-area-title" id="assigned-area-name"><i class="fa-solid fa-map-marker-alt"></i> Chưa chỉ định</h2>
+                            <p id="assigned-area-desc" class="text-small text-muted"></p>
+                        </div>
+                        <div class="submission-status-badge badge badge-pending" id="submission-status-msg">
+                            Chưa chấm điểm
+                        </div>
+                    </div>
+
+                    <div id="checklist-items-container" class="checklist-grid margin-top">
+                        <!-- Dynamic Checklist Items -->
+                    </div>
+
+                    <div class="submit-action-bar hide" id="checklist-submit-bar">
+                        <button class="btn btn-success btn-lg" id="submit-all-checklist-btn">
+                            <i class="fa-solid fa-paper-plane"></i> GỬI TOÀN BỘ ĐÁNH GIÁ CHẤM CHÉO
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= MÀN HÌNH QUẢN LÝ (MANAGER) ================= -->
+        <section id="manager-view" class="view-section">
+            <header class="app-header glass">
+                <div class="header-left">
+                    <img src="/static/logo.png" alt="Thời Thanh Xuân" class="header-logo">
+                    <div class="user-info-bar">
+                        <div class="user-avatar admin-avatar"><i class="fa-solid fa-user-shield"></i></div>
+                        <div>
+                            <h2>Quản Lý Hệ Thống</h2>
+                            <span class="badge badge-manager">Quản trị viên</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="manager-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+                </div>
+            </header>
+
+            <div class="manager-layout container">
+                <!-- Sidebar Nav -->
+                <aside class="sidebar glass">
+                    <nav class="sidebar-nav">
+                        <button class="sidebar-btn active" data-target="m-dashboard-tab"><i class="fa-solid fa-chart-pie"></i> Tổng Quan</button>
+                        <button class="sidebar-btn" data-target="m-reports-tab" id="nav-reports-tab"><i class="fa-solid fa-chart-line"></i> Báo Cáo & Hiệu Suất</button>
+                        <button class="sidebar-btn" data-target="m-approve-tab" id="nav-approve-tab"><i class="fa-solid fa-clipboard-check"></i> Duyệt Checklist</button>
+                        <button class="sidebar-btn" data-target="m-staff-tab" id="nav-staff-tab"><i class="fa-solid fa-users"></i> Quản Lý Nhân Sự</button>
+                        <button class="sidebar-btn" data-target="m-config-tab" id="nav-config-tab"><i class="fa-solid fa-sliders"></i> Thiết Lập Checklist</button>
+                    </nav>
+                </aside>
+
+                <!-- Main Content Area -->
+                <main class="manager-content">
+                    
+                    <!-- 1. Tab: Tổng Quan -->
+                    <div id="m-dashboard-tab" class="manager-tab-content active">
+                        <div class="stats-grid">
+                            <div class="stat-card glass">
+                                <div class="stat-icon bg-success-light"><i class="fa-solid fa-user-clock text-success"></i></div>
+                                <div class="stat-info">
+                                    <h4 id="stat-active-staff">0</h4>
+                                    <p>Nhân sự đang làm việc</p>
+                                </div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-icon bg-primary-light"><i class="fa-solid fa-check-double text-primary"></i></div>
+                                <div class="stat-info">
+                                    <h4 id="stat-today-checklists">0</h4>
+                                    <p>Checklist nộp hôm nay</p>
+                                </div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-icon bg-warning-light"><i class="fa-solid fa-layer-group text-warning"></i></div>
+                                <div class="stat-info">
+                                    <h4 id="stat-total-areas">0</h4>
+                                    <p>Tổng số khu vực</p>
+                                </div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-icon bg-info-light"><i class="fa-solid fa-address-book text-info"></i></div>
+                                <div class="stat-info">
+                                    <h4 id="stat-total-staff">0</h4>
+                                    <p>Tổng số nhân viên</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card glass margin-top">
+                            <h3>Nhật ký hoạt động gần đây</h3>
+                            <div class="table-responsive">
+                                <table class="table" id="dashboard-recent-logs-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nhân viên</th>
+                                            <th>Khu vực làm việc</th>
+                                            <th>Giờ vào (Check-in)</th>
+                                            <th>Giờ ra (Check-out)</th>
+                                            <th>Thời gian làm việc</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Tab: Báo Cáo & Hiệu Suất (REPORT) -->
+                    <div id="m-reports-tab" class="manager-tab-content">
+                        <div class="report-header glass" style="flex-wrap: wrap; gap: 16px;">
+                            <div style="flex: 1; min-width: 250px;">
+                                <h3>Báo cáo thời gian làm việc & Hiệu suất Checklist ca</h3>
+                                <p class="text-muted">Đánh giá độ sạch sẽ của khu vực phụ trách và thái độ làm việc của nhân sự</p>
+                            </div>
+                            
+                            <!-- BỘ LỌC THỜI GIAN -->
+                            <div class="report-filter-wrapper" style="display: flex; gap: 12px; align-items: center; background: rgba(58, 96, 74, 0.04); padding: 10px 16px; border-radius: 12px; border: 1px solid rgba(58, 96, 74, 0.1); flex-wrap: wrap;">
+                                <div class="filter-group" style="display: flex; align-items: center; gap: 6px;">
+                                    <label for="report-start-date" style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Từ:</label>
+                                    <input type="date" id="report-start-date" class="form-control" style="padding: 6px 10px; border-radius: 8px; width: 135px; font-size: 0.85rem; height: auto;">
+                                </div>
+                                <div class="filter-group" style="display: flex; align-items: center; gap: 6px;">
+                                    <label for="report-end-date" style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Đến:</label>
+                                    <input type="date" id="report-end-date" class="form-control" style="padding: 6px 10px; border-radius: 8px; width: 135px; font-size: 0.85rem; height: auto;">
+                                </div>
+                                <div class="filter-group" style="display: flex; align-items: center; gap: 6px;">
+                                    <label for="report-search-input" style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);"><i class="fa-solid fa-magnifying-glass"></i> Tìm nhân sự:</label>
+                                    <input type="text" id="report-search-input" class="form-control" placeholder="Nhập tên hoặc mã..." style="padding: 6px 10px; border-radius: 8px; width: 150px; font-size: 0.85rem; height: auto;">
+                                </div>
+                                <button id="apply-report-filter-btn" class="btn btn-primary btn-sm" style="border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 0.85rem;"><i class="fa-solid fa-filter"></i> Lọc</button>
+                            </div>
+                            
+                            <div class="export-actions" style="display: flex; gap: 8px;">
+                                <a id="export-attendance-btn" href="/api/manager/reports/export/attendance" class="btn btn-success btn-sm" style="border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85rem;" download="Bao_Cao_Cham_Cong.xlsx"><i class="fa-solid fa-file-excel"></i> Xuất Excel Chấm Công</a>
+                                <a id="export-efficiency-btn" href="/api/manager/reports/export/efficiency" class="btn btn-primary btn-sm" style="border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85rem;" download="Bao_Cao_Hieu_Suat_Nhan_Su.xlsx"><i class="fa-solid fa-file-invoice"></i> Xuất Excel Hiệu Suất (KPI)</a>
+                            </div>
+                        </div>
+
+                        <div class="card glass margin-top">
+                            <div class="table-responsive">
+                                <table class="table" id="report-efficiency-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Mã NV</th>
+                                            <th>Nhân viên</th>
+                                            <th>Khu vực phụ trách</th>
+                                            <th>Tổng giờ làm</th>
+                                            <th>Số ca làm</th>
+                                            <th>Số checklist chấm</th>
+                                            <th>Điểm vệ sinh khu vực</th>
+                                            <th>Tỷ lệ chấm chéo</th>
+                                            <th>Hiệu suất</th>
+                                            <th>Chi tiết lỗi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Tab: Duyệt Checklist -->
+                    <div id="m-approve-tab" class="manager-tab-content">
+                        <div class="tab-sub-nav">
+                            <button class="sub-tab-btn active" data-status="pending">Chờ phê duyệt</button>
+                            <button class="sub-tab-btn" data-status="approved">Đã đạt</button>
+                            <button class="sub-tab-btn" data-status="rejected">Cần làm lại</button>
+                        </div>
+
+                        <div id="submissions-list-container" class="margin-top">
+                            <!-- Dynamic checklist submissions for manager review -->
+                        </div>
+                    </div>
+
+                    <!-- 4. Tab: Quản Lý Nhân Sự -->
+                    <div id="m-staff-tab" class="manager-tab-content">
+                        <div class="card-header-action glass">
+                            <h3>Danh Sách Nhân Sự</h3>
+                            <button class="btn btn-primary" id="add-staff-btn"><i class="fa-solid fa-user-plus"></i> Thêm Nhân Viên</button>
+                        </div>
+
+                        <div class="card glass margin-top">
+                            <div class="table-responsive">
+                                <table class="table" id="manager-staff-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Mã NV</th>
+                                            <th>Họ & Tên</th>
+                                            <th>Số CCCD</th>
+                                            <th>Vai Trò</th>
+                                            <th>Khu vực mặc định</th>
+                                            <th>Trạng thái</th>
+                                            <th class="text-center">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Tab: Thiết Lập Checklist & Khu Vực -->
+                    <div id="m-config-tab" class="manager-tab-content">
+                        <div class="config-grid">
+                            
+                            <!-- Bảng Khu Vực -->
+                            <div class="card glass">
+                                <div class="card-header-action no-padding">
+                                    <h3>Các Khu Vực</h3>
+                                    <button class="btn btn-primary btn-sm" id="add-area-btn"><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                <div class="table-responsive margin-top-sm">
+                                    <table class="table" id="manager-areas-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tên khu vực</th>
+                                                <th>Mô tả</th>
+                                                <th class="text-right">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamic Areas -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Bảng Hạng Mục Checklist -->
+                            <div class="card glass">
+                                <div class="card-header-action no-padding">
+                                    <h3>Hạng Mục Checklist</h3>
+                                    <button class="btn btn-primary btn-sm" id="add-item-btn"><i class="fa-solid fa-plus"></i> Thêm</button>
+                                </div>
+                                <div class="form-group margin-top-sm">
+                                    <label for="config-area-filter">Lọc theo khu vực:</label>
+                                    <select id="config-area-filter" class="form-control">
+                                        <!-- Dynamic Area list -->
+                                    </select>
+                                </div>
+                                <div class="table-responsive margin-top-sm">
+                                    <table class="table" id="manager-items-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Công việc cần kiểm tra</th>
+                                                <th>Ảnh mẫu</th>
+                                                <th class="text-right">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamic Items -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Bảng Cấu hình Phân công Chấm chéo -->
+                            <div class="card glass" style="grid-column: 1 / -1; margin-top: 24px;">
+                                <div class="card-header-action no-padding">
+                                    <h3>Phân Công Quy Tắc Chấm Chéo Ca Làm</h3>
+                                    <button class="btn btn-primary btn-sm" id="add-rule-btn"><i class="fa-solid fa-plus"></i> Thêm Quy Tắc</button>
+                                </div>
+                                <p class="text-muted text-small margin-top-xs">Cấu hình bộ phận nào sẽ kiểm tra vệ sinh cho bộ phận nào. Nếu bộ phận không cấu hình quy tắc, hệ thống sẽ tự động chỉ định ngẫu nhiên.</p>
+                                <div class="table-responsive margin-top-sm">
+                                    <table class="table" id="manager-rules-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Bộ phận đi chấm</th>
+                                                <th>Bộ phận được chấm (Mục tiêu)</th>
+                                                <th class="text-right">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamic Rules -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </main>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ================= MODAL CAMERA CHỤP ẢNH & OVERLAY 30% ================= -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content camera-modal-content glass">
+            <div class="modal-header">
+                <h3>Chụp ảnh xác nhận vệ sinh</h3>
+                <button class="close-btn" id="close-camera-modal-btn">&times;</button>
+            </div>
+            <div class="camera-body">
+                <div class="camera-preview-container">
+                    <!-- Live video feed -->
+                    <video id="webcam" autoplay playsinline class="webcam-feed"></video>
+                    
+                    <!-- Absolute overlay image (30% transparency) -->
+                    <img id="camera-overlay-image" src="" alt="Reference overlay" class="camera-ref-overlay opacity-30 hide">
+                    
+                    <!-- Simulated preview for canvas capture -->
+                    <canvas id="capture-canvas" class="hide"></canvas>
+                    <img id="captured-preview" src="" alt="Captured result" class="captured-preview hide">
+                </div>
+
+                <!-- Controls -->
+                <div class="camera-controls">
+                    <div class="control-top">
+                        <!-- Toggle transparency overlay -->
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-overlay-check" checked>
+                            <span class="slider"></span>
+                            <span class="label-text">Hiển thị ảnh mẫu đè (30% mờ)</span>
+                        </label>
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <!-- File Upload fallback -->
+                        <div class="file-upload-fallback">
+                            <label for="file-fallback-input" class="btn btn-outline">
+                                <i class="fa-solid fa-upload"></i> Tải ảnh lên thay thế
+                            </label>
+                            <input type="file" id="file-fallback-input" accept="image/*" class="hide">
+                        </div>
+
+                        <!-- Snap button -->
+                        <button id="snap-btn" class="btn btn-primary btn-lg"><i class="fa-solid fa-camera"></i> Chụp Ảnh</button>
+                        <button id="retake-btn" class="btn btn-outline btn-lg hide"><i class="fa-solid fa-rotate-left"></i> Chụp Lại</button>
+                    </div>
+                </div>
+
+                <!-- Grade submission -->
+                <div class="grading-panel margin-top hide" id="grading-panel">
+                    <div class="form-group">
+                        <label>Đánh giá hiện trạng:</label>
+                        <div class="grade-buttons">
+                            <button type="button" class="btn btn-grade btn-grade-pass active" data-grade="pass">
+                                <i class="fa-solid fa-circle-check"></i> ĐẠT (Sạch sẽ)
+                            </button>
+                            <button type="button" class="btn btn-grade btn-grade-fail" data-grade="fail">
+                                <i class="fa-solid fa-circle-xmark"></i> KHÔNG ĐẠT (Chưa đạt)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="grade-notes">Ghi chú thêm (không bắt buộc):</label>
+                        <textarea id="grade-notes" class="form-control" rows="2" placeholder="Nhập ghi chú hoặc lý do nếu Không đạt..."></textarea>
+                    </div>
+                    <button id="save-grade-btn" class="btn btn-success btn-block"><i class="fa-solid fa-save"></i> Lưu Đánh Giá Mục Này</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODALS QUẢN LÝ (THÊM/SỬA NHÂN VIÊN) ================= -->
+    <div id="staff-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3 id="staff-modal-title">Thêm Nhân Viên</h3>
+                <button class="close-btn" id="close-staff-modal-btn">&times;</button>
+            </div>
+            <form id="staff-form">
+                <input type="hidden" id="staff-id">
+                <div class="form-group">
+                    <label for="staff-name">Họ & Tên:</label>
+                    <input type="text" id="staff-name" class="form-control" placeholder="Nhập họ tên nhân viên" required>
+                </div>
+                <div class="form-group">
+                    <label for="staff-code">Mã đăng nhập (Dùng để Login):</label>
+                    <div class="input-with-button">
+                        <input type="text" id="staff-code" class="form-control" placeholder="Nhập mã (VD: FT03)" required>
+                        <button type="button" id="gen-code-btn" class="btn btn-outline btn-sm">Tạo ngẫu nhiên</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="staff-role">Loại Nhân Sự:</label>
+                    <select id="staff-role" class="form-control">
+                        <option value="fulltime">Fulltime (Mã riêng)</option>
+                        <option value="parttime">Parttime (Mã quản lý cấp)</option>
+                        <option value="manager">Quản lý (Manager)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="staff-cccd-group">
+                    <label for="staff-cccd">Số Căn cước công dân (CCCD):</label>
+                    <input type="text" id="staff-cccd" class="form-control" placeholder="Nhập 12 chữ số CCCD" maxlength="12" pattern="\\d{12}">
+                </div>
+                <div class="form-group" id="staff-area-group">
+                    <label for="staff-area-select">Khu vực làm việc mặc định:</label>
+                    <select id="staff-area-select" class="form-control">
+                        <!-- Dynamic Areas -->
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block margin-top">Lưu thông tin</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODALS KHU VỰC ================= -->
+    <div id="area-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3 id="area-modal-title">Thêm Khu Vực</h3>
+                <button class="close-btn" id="close-area-modal-btn">&times;</button>
+            </div>
+            <form id="area-form">
+                <input type="hidden" id="area-id">
+                <div class="form-group">
+                    <label for="area-name">Tên khu vực:</label>
+                    <input type="text" id="area-name" class="form-control" placeholder="VD: Khu vực kho, Sân vườn..." required>
+                </div>
+                <div class="form-group">
+                    <label for="area-desc">Mô tả:</label>
+                    <textarea id="area-desc" class="form-control" rows="3" placeholder="Mô tả công việc chung tại khu vực này..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block margin-top">Lưu thông tin</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODALS HẠNG MỤC CHECKLIST ================= -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3 id="item-modal-title">Thêm Hạng Mục Checklist</h3>
+                <button class="close-btn" id="close-item-modal-btn">&times;</button>
+            </div>
+            <form id="item-form" enctype="multipart/form-data">
+                <input type="hidden" id="item-id">
+                <div class="form-group">
+                    <label for="item-area-select">Khu vực:</label>
+                    <select id="item-area-select" class="form-control" required>
+                        <!-- Dynamic areas -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="item-task">Yêu cầu kiểm tra vệ sinh:</label>
+                    <input type="text" id="item-task" class="form-control" placeholder="VD: Mặt kính phải lau bóng, sạch bụi" required>
+                </div>
+                <div class="form-group">
+                    <label for="item-image">Ảnh mẫu tiêu chuẩn (Cố định góc chụp):</label>
+                    <input type="file" id="item-image" class="form-control" accept="image/*">
+                    <p class="text-small text-muted margin-top-xs">Ảnh này sẽ hiển thị làm mờ 30% khi nhân viên chụp ảnh chấm chéo.</p>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block margin-top">Lưu thông tin</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODALS QUY TẮC CHẤM CHÉO ================= -->
+    <div id="rule-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3 id="rule-modal-title">Cấu hình Quy tắc Chấm chéo</h3>
+                <button class="close-btn" id="close-rule-modal-btn">&times;</button>
+            </div>
+            <form id="rule-form">
+                <div class="form-group">
+                    <label for="rule-from-select">Bộ phận đi chấm:</label>
+                    <select id="rule-from-select" class="form-control" required>
+                        <!-- Dynamic Areas -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rule-to-select">Bộ phận được chấm (Mục tiêu):</label>
+                    <select id="rule-to-select" class="form-control" required>
+                        <!-- Dynamic Areas -->
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block margin-top">Lưu quy tắc</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL XEM SO SÁNH DUYỆT CHECKLIST ================= -->
+    <div id="review-modal" class="modal">
+        <div class="modal-content review-modal-content glass">
+            <div class="modal-header">
+                <h3>Phê duyệt Checklist Chấm Chéo</h3>
+                <button class="close-btn" id="close-review-modal-btn">&times;</button>
+            </div>
+            <div class="review-body">
+                <div class="review-info-top">
+                    <p>Người chấm: <strong id="rev-grader-name">-</strong></p>
+                    <p>Khu vực chấm: <strong id="rev-area-name">-</strong></p>
+                    <p>Thời gian nộp: <span id="rev-timestamp">-</span></p>
+                </div>
+                
+                <div id="review-items-container" class="review-items-container margin-top">
+                    <!-- Dynamic review items (ref image next to captured image) -->
+                </div>
+                
+                <div class="review-action-panel margin-top">
+                    <div class="form-group">
+                        <label for="review-notes">Phản hồi của quản lý (nếu có):</label>
+                        <textarea id="review-notes" class="form-control" placeholder="Nhập lý do nếu cần làm lại hoặc ghi chú đánh giá..."></textarea>
+                    </div>
+                    <div class="review-actions">
+                        <button id="reject-submission-btn" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Yêu Cầu Làm Lại</button>
+                        <button id="approve-submission-btn" class="btn btn-success"><i class="fa-solid fa-check"></i> Duyệt Đạt</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL BÁO CÁO KẾT THÚC CA (CHECKOUT SUMMARY) ================= -->
+    <div id="checkout-summary-modal" class="modal">
+        <div class="modal-content glass text-center" style="max-width: 440px; background: #ffffff;">
+            <div class="modal-header" style="justify-content: center; border: none; margin-bottom: 10px;">
+                <div class="logo-icon bg-success-light" style="margin: 0; background-color: rgba(58, 96, 74, 0.1); color: var(--color-primary); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+                    <i class="fa-solid fa-circle-question"></i>
+                </div>
+            </div>
+            <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">XÁC NHẬN KẾT THÚC CA</h3>
+            <p class="text-muted text-small" style="margin-bottom: 24px;">Vui lòng kiểm tra tổng thời gian làm việc và kết quả checklist vệ sinh trước khi check-out:</p>
+            
+            <div class="checkout-summary-grid" style="display: grid; grid-template-columns: 1fr; gap: 16px; text-align: left; margin-bottom: 24px;">
+                <div class="summary-card" style="padding: 16px; background-color: rgba(0,0,0,0.015); border: 1px solid var(--border-glass); border-radius: var(--radius-md);">
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px;"><i class="fa-solid fa-clock text-primary"></i> Tổng thời gian làm việc ca này:</div>
+                    <div id="summary-working-time" style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">-</div>
+                </div>
+                
+                <div class="summary-card" style="padding: 16px; background-color: rgba(0,0,0,0.015); border: 1px solid var(--border-glass); border-radius: var(--radius-md);">
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px;"><i class="fa-solid fa-list-check text-success"></i> Kết quả checklist chấm chéo:</div>
+                    <div id="summary-checklist-percent" style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">-</div>
+                    <div id="summary-checklist-detail" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">-</div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button id="cancel-checkout-btn" class="btn btn-secondary" style="flex: 1; border-radius: 9999px; padding: 12px; font-weight: 700;">
+                    Quay lại
+                </button>
+                <button id="confirm-checkout-btn" class="btn btn-primary" style="flex: 1; border-radius: 9999px; padding: 12px; font-weight: 700; background-color: var(--color-primary); color: #ffffff;">
+                    Chấp nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
