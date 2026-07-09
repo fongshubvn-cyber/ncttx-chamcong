@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SQLite Database
+data.db
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# Dynamic Uploaded Checklist Photos (Ignore actual captures, but keep reference templates)
+static/uploads/*
+!static/uploads/ref_*

@@ -103,12 +103,9 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         # Thêm các khu vực mặc định
         areas_data = [
-            ("Phục vụ", "Bộ phận phục vụ bàn, sảnh khách và chăm sóc khách hàng"),
             ("Pha chế", "Bộ phận chế biến thức uống và vệ sinh khu vực quầy bar"),
-            ("Bán hàng", "Bộ phận thanh toán, quầy thu ngân và máy POS"),
-            ("Tư vấn viên", "Bộ phận giới thiệu sản phẩm và tư vấn dịch vụ"),
-            ("Gardener", "Bộ phận chăm sóc cây xanh, vườn và không gian xanh cảnh quan"),
-            ("Bảo vệ", "Bộ phận an ninh, trông giữ xe và bảo vệ tài sản cửa hàng")
+            ("Bếp bánh", "Bộ phận chế biến các món bánh ngọt, bánh nướng"),
+            ("Bán hàng", "Bộ phận thanh toán, quầy thu ngân và máy POS")
         ]
         cursor.executemany("INSERT INTO areas (name, description) VALUES (?, ?)", areas_data)
         
@@ -121,47 +118,47 @@ def init_db():
             ("Quản Lý Cửa Hàng", "123456", "manager", "001095123456", None),
             ("Nguyễn Văn A (Fulltime)", "FT1001", "fulltime", "038096000001", areas_map["Bán hàng"]),
             ("Trần Thị B (Fulltime)", "FT1002", "fulltime", "038096000002", areas_map["Pha chế"]),
-            ("Lê Văn C (Parttime)", "PT2001", "parttime", "038096000003", areas_map["Phục vụ"]),
-            ("Phạm Thị D (Parttime)", "PT2002", "parttime", "038096000004", areas_map["Tư vấn viên"])
+            ("Lê Văn C (Parttime)", "PT2001", "parttime", "038096000003", areas_map["Bếp bánh"])
         ]
         cursor.executemany("INSERT INTO users (name, code, role, cccd, area_id) VALUES (?, ?, ?, ?, ?)", users_data)
         
-        # Thêm các hạng mục checklist mặc định
-        checklist_data = [
-            # Phục vụ
-            (areas_map["Phục vụ"], "Lau sạch bề mặt bàn ghế và thu dọn ly đĩa bẩn tại khu vực khách ngồi", "static/uploads/ref_phucvu_1.png"),
-            (areas_map["Phục vụ"], "Quét dọn sạch sàn nhà khu vực sảnh khách, không để rác và bụi bẩn", "static/uploads/ref_phucvu_2.png"),
-            
-            # Pha chế
-            (areas_map["Pha chế"], "Vệ sinh sạch máy pha cà phê, dụng cụ pha chế và úp ráo nước gọn gàng", "static/uploads/ref_phache_1.png"),
-            (areas_map["Pha chế"], "Lau sạch bề mặt quầy pha chế, khay hứng nước thải và bồn rửa", "static/uploads/ref_phache_2.png"),
-            
-            # Bán hàng
-            (areas_map["Bán hàng"], "Lau sạch quầy thu ngân, mặt kính trưng bày sản phẩm và máy POS", "static/uploads/ref_banhang_1.png"),
-            (areas_map["Bán hàng"], "Sắp xếp ngăn kéo tiền lẻ gọn gàng và vệ sinh khu vực xung quanh quầy", "static/uploads/ref_banhang_2.png"),
-            
-            # Tư vấn viên
-            (areas_map["Tư vấn viên"], "Sắp xếp kệ trưng bày sản phẩm mẫu gọn gàng, sạch sẽ, không bám bụi", "static/uploads/ref_tuvan_1.png"),
-            (areas_map["Tư vấn viên"], "Lau sạch bàn tư vấn, sắp xếp catalogue và ghế ngồi ngăn nắp", "static/uploads/ref_tuvan_2.png"),
-            
-            # Gardener
-            (areas_map["Gardener"], "Tưới nước cho cây cảnh, nhặt lá úa và thu dọn rác khu vực lối đi sân vườn", "static/uploads/ref_garden_1.png"),
-            (areas_map["Gardener"], "Cắt tỉa các cành cây khô, lau dọn khu vực chậu cây xanh trong nhà", "static/uploads/ref_garden_2.png"),
-            
-            # Bảo vệ
-            (areas_map["Bảo vệ"], "Quét sạch khu vực để xe của khách hàng, sắp xếp xe thẳng hàng lối", "static/uploads/ref_baove_1.png"),
-            (areas_map["Bảo vệ"], "Vệ sinh sạch bàn trực bảo vệ, sắp xếp ghi chép xe ra vào ngăn nắp", "static/uploads/ref_baove_2.png")
-        ]
-        cursor.executemany("INSERT INTO checklist_items (area_id, task_name, reference_image) VALUES (?, ?, ?)", checklist_data)
+        # Thêm các hạng mục checklist bằng cách quét thư mục assets tương ứng
+        import shutil
+        os.makedirs('static/uploads', exist_ok=True)
         
+        folder_mapping = {
+            "Pha chế": "phache",
+            "Bếp bánh": "bepbanh",
+            "Bán hàng": "banhang"
+        }
+        
+        checklist_data = []
+        for area_name, folder_name in folder_mapping.items():
+            area_id = areas_map[area_name]
+            folder_path = os.path.join('assets', folder_name)
+            if os.path.exists(folder_path):
+                files = sorted([f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
+                for index, filename in enumerate(files, 1):
+                    src_path = os.path.join(folder_path, filename)
+                    ext = os.path.splitext(filename)[1].lower() or '.jpg'
+                    dest_name = f"ref_{folder_name}_{index}{ext}"
+                    dest_path = os.path.join('static', 'uploads', dest_name)
+                    
+                    shutil.copy(src_path, dest_path)
+                    
+                    task_desc = f"Yêu cầu kiểm tra vệ sinh sạch sẽ, sắp xếp ngăn nắp theo ảnh mẫu tiêu chuẩn (Hạng mục {index})"
+                    checklist_data.append((area_id, task_desc, f"static/uploads/{dest_name}"))
+            else:
+                print(f"Warning: Folder {folder_path} not found.")
+                
+        if checklist_data:
+            cursor.executemany("INSERT INTO checklist_items (area_id, task_name, reference_image) VALUES (?, ?, ?)", checklist_data)
+            
         # Thêm cấu hình chấm chéo mặc định (Vòng tròn khép kín)
         rules_data = [
-            (areas_map["Phục vụ"], areas_map["Pha chế"]),
-            (areas_map["Pha chế"], areas_map["Bán hàng"]),
-            (areas_map["Bán hàng"], areas_map["Tư vấn viên"]),
-            (areas_map["Tư vấn viên"], areas_map["Gardener"]),
-            (areas_map["Gardener"], areas_map["Bảo vệ"]),
-            (areas_map["Bảo vệ"], areas_map["Phục vụ"])
+            (areas_map["Pha chế"], areas_map["Bếp bánh"]),
+            (areas_map["Bếp bánh"], areas_map["Bán hàng"]),
+            (areas_map["Bán hàng"], areas_map["Pha chế"])
         ]
         cursor.executemany("INSERT INTO cross_check_rules (from_area_id, to_area_id) VALUES (?, ?)", rules_data)
         
