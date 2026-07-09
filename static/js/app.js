@@ -984,6 +984,60 @@ async function uploadCapturedFile(file) {
     }
 }
 
+// Nén ảnh client-side trước khi upload để giảm dung lượng (tối ưu cho di động 3G/4G)
+async function compressAndUpload(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function (event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1024;
+                const MAX_HEIGHT = 1024;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(async (blob) => {
+                    const compressedFile = new File([blob], file.name || "upload.jpg", {
+                        type: "image/jpeg"
+                    });
+                    try {
+                        await uploadCapturedFile(compressedFile);
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                }, 'image/jpeg', 0.8); // Nén chất lượng 80%
+            };
+            img.onerror = function (err) {
+                reject(err);
+            };
+        };
+        reader.onerror = function (err) {
+            reject(err);
+        };
+    });
+}
+
 // Xử lý khi chọn file fallback
 async function handleFileUploadFallback(e) {
     const file = e.target.files[0];
@@ -1000,9 +1054,9 @@ async function handleFileUploadFallback(e) {
     preview.src = URL.createObjectURL(file);
     preview.classList.remove('hide');
     
-    // Tiến hành upload
+    // Tiến hành nén và upload
     try {
-        await uploadCapturedFile(file);
+        await compressAndUpload(file);
         
         // Hiện panel chấm điểm
         document.getElementById('snap-btn').classList.add('hide');
