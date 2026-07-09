@@ -876,15 +876,41 @@ function resetCameraModalUI() {
     });
     document.getElementById('grade-notes').value = '';
     
-    // Nếu có ảnh đã chụp trước đó cho hạng mục này, hiển thị gợi ý
+    // Nếu có ảnh đã chụp trước đó cho hạng mục này, hiển thị gợi ý và ảnh preview
     const oldGraded = state.submissionState[state.activeItemId];
     if (oldGraded) {
         document.getElementById('grade-notes').value = oldGraded.notes || '';
         state.activeGrade = oldGraded.status;
+        state.capturedImageUrl = oldGraded.captured_image;
         document.querySelectorAll('.btn-grade').forEach(btn => {
             if (btn.getAttribute('data-grade') === oldGraded.status) btn.classList.add('active');
             else btn.classList.remove('active');
         });
+        
+        // Hiển thị ảnh preview đã chụp
+        document.getElementById('webcam').classList.add('hide');
+        const preview = document.getElementById('captured-preview');
+        preview.src = oldGraded.captured_image;
+        preview.classList.remove('hide');
+        document.getElementById('snap-btn').classList.add('hide');
+        document.getElementById('retake-btn').classList.remove('hide');
+        document.getElementById('grading-panel').classList.remove('hide');
+    }
+
+    // Cập nhật nội dung và màu sắc nút bấm Lưu/Nộp
+    const saveBtn = document.getElementById('save-grade-btn');
+    if (saveBtn && state.checklistItems) {
+        const currentIndex = state.checklistItems.findIndex(i => i.id === state.activeItemId);
+        const total = state.checklistItems.length;
+        if (currentIndex !== -1 && currentIndex < total - 1) {
+            saveBtn.innerHTML = `<i class="fa-solid fa-arrow-right"></i> Lưu & Chấm Tiếp (Hạng mục ${currentIndex + 2}/${total})`;
+            saveBtn.style.backgroundColor = "var(--color-primary)"; 
+            saveBtn.style.color = "#ffffff";
+        } else {
+            saveBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Lưu & GỬI BÁO CÁO LÊN CLOUD`;
+            saveBtn.style.backgroundColor = "#28a745"; 
+            saveBtn.style.color = "#ffffff";
+        }
     }
 }
 
@@ -1068,7 +1094,7 @@ async function handleFileUploadFallback(e) {
 }
 
 // Lưu kết quả chấm điểm của mục hiện tại vào state tạm thời
-function saveItemGrade() {
+async function saveItemGrade() {
     if (!state.capturedImageUrl) {
         alert('Hình ảnh thực tế chưa được chụp hoặc upload thành công.');
         return;
@@ -1082,9 +1108,61 @@ function saveItemGrade() {
         notes: notes
     };
     
-    closeCameraModal();
     renderChecklistCards();
     checkChecklistCompleteness();
+    
+    // Xác định mục tiếp theo
+    const currentIndex = state.checklistItems.findIndex(i => i.id === state.activeItemId);
+    const total = state.checklistItems.length;
+    
+    if (currentIndex !== -1 && currentIndex < total - 1) {
+        // Chuyển sang hạng mục tiếp theo
+        const nextItem = state.checklistItems[currentIndex + 1];
+        
+        // Dừng camera stream cũ trước khi mở cái mới
+        stopCameraStream();
+        
+        // Cấu hình ID mục hoạt động mới
+        state.activeItemId = nextItem.id;
+        
+        // Cấu hình ảnh mẫu lớp phủ mới
+        const overlayImg = document.getElementById('camera-overlay-image');
+        if (nextItem.reference_image) {
+            overlayImg.src = nextItem.reference_image;
+            overlayImg.classList.remove('hide');
+            document.getElementById('toggle-overlay-check').checked = true;
+        } else {
+            overlayImg.src = '';
+            overlayImg.classList.add('hide');
+            document.getElementById('toggle-overlay-check').checked = false;
+        }
+        
+        // Khởi động lại UI cho mục mới
+        resetCameraModalUI();
+        
+        // Khởi động camera stream mới
+        const video = document.getElementById('webcam');
+        try {
+            state.webcamStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+                audio: false
+            });
+            video.srcObject = state.webcamStream;
+        } catch (e) {
+            console.warn("Không khởi động lại được camera: ", e);
+        }
+    } else {
+        // Nếu là mục cuối cùng, kiểm tra đầy đủ và gửi báo cáo thẳng lên cloud luôn!
+        const allGraded = state.checklistItems.every(item => state.submissionState[item.id]);
+        if (!allGraded) {
+            alert('Vui lòng hoàn thành chấm điểm đầy đủ tất cả các hạng mục trước khi gửi báo cáo.');
+            closeCameraModal();
+            return;
+        }
+        
+        closeCameraModal();
+        await submitAllChecklist();
+    }
 }
 
 // ================= QUẢN LÝ: TỔNG QUAN (MANAGER DASHBOARD) =================
