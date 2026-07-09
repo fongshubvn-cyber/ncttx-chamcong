@@ -147,7 +147,7 @@ def init_db():
                     shutil.copy(src_path, dest_path)
                     
                     task_desc = f"Yêu cầu kiểm tra vệ sinh sạch sẽ, sắp xếp ngăn nắp theo ảnh mẫu tiêu chuẩn (Hạng mục {index})"
-                    checklist_data.append((area_id, task_desc, f"static/uploads/{dest_name}"))
+                    checklist_data.append((area_id, task_desc, f"/static/uploads/{dest_name}"))
             else:
                 print(f"Warning: Folder {folder_path} not found.")
                 
