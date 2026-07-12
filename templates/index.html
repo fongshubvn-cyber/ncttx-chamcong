@@ -417,8 +417,15 @@
                     <!-- Live video feed -->
                     <video id="webcam" autoplay playsinline class="webcam-feed"></video>
                     
-                    <!-- Absolute overlay image (30% transparency) -->
-                    <img id="camera-overlay-image" src="" alt="Reference overlay" class="camera-ref-overlay opacity-30 hide">
+                    <!-- Absolute overlay image (with dynamic opacity slider, default 30%) -->
+                    <img id="camera-overlay-image" src="" alt="Reference overlay" class="camera-ref-overlay hide" style="opacity: 0.3;">
+                    
+                    <!-- Photographic 3x3 Grid Overlay -->
+                    <div id="camera-grid-overlay" class="camera-grid-overlay">
+                        <div></div><div></div><div></div>
+                        <div></div><div></div><div></div>
+                        <div></div><div></div><div></div>
+                    </div>
                     
                     <!-- Simulated preview for canvas capture -->
                     <canvas id="capture-canvas" class="hide"></canvas>
@@ -427,13 +434,21 @@
 
                 <!-- Controls -->
                 <div class="camera-controls">
-                    <div class="control-top">
-                        <!-- Toggle transparency overlay -->
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="toggle-overlay-check" checked>
-                            <span class="slider"></span>
-                            <span class="label-text">Hiển thị ảnh mẫu đè (30% mờ)</span>
-                        </label>
+                    <!-- Custom Alignment Tool Suite (Grid & Opacity) -->
+                    <div class="control-alignment-tools">
+                        <div class="tool-group">
+                            <div class="tool-label">
+                                <span><i class="fa-solid fa-sliders text-primary"></i> Độ mờ ảnh mẫu (Căn góc):</span>
+                                <span id="opacity-val" style="font-weight: 700; color: var(--color-primary);">30%</span>
+                            </div>
+                            <input type="range" id="overlay-opacity-slider" min="0" max="100" value="30" class="opacity-range-slider">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 8px;">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary);"><i class="fa-solid fa-border-all"></i> Lưới căn chỉnh 3x3:</span>
+                            <button type="button" id="toggle-grid-btn" class="btn btn-outline btn-xs active" style="padding: 4px 12px; font-size: 0.75rem; border-radius: 9999px; border-color: var(--color-primary); color: var(--color-primary);">
+                                Đang BẬT
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="control-buttons">
