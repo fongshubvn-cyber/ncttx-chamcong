@@ -394,6 +394,8 @@ def time_log_toggle():
     user_id = data.get('user_id')
     action = data.get('action') # 'check_in' hoặc 'check_out'
     area_id = data.get('area_id') # Gửi kèm khi check_in
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
     
     if not user_id or not action:
         return jsonify({'error': 'Thiếu tham số'}), 400
@@ -413,9 +415,9 @@ def time_log_toggle():
         if not area_id:
             conn.close()
             return jsonify({'error': 'Vui lòng chọn khu vực làm việc ca này'}), 400
-        # Ghi nhận check-in
-        conn.execute('INSERT INTO time_logs (user_id, action, timestamp, area_id) VALUES (?, ?, ?, ?)',
-                     (user_id, 'check_in', now_str, area_id))
+        # Ghi nhận check-in kèm toạ độ GPS
+        conn.execute('INSERT INTO time_logs (user_id, action, timestamp, area_id, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?)',
+                     (user_id, 'check_in', now_str, area_id, latitude, longitude))
         conn.commit()
         conn.close()
         return jsonify({'success': True, 'action': action, 'timestamp': now_str})
@@ -472,10 +474,9 @@ def time_log_toggle():
                 'passed': 0,
                 'area_name': 'Chưa thực hiện'
             }
-
-        # Ghi nhận check-out
-        conn.execute('INSERT INTO time_logs (user_id, action, timestamp, area_id) VALUES (?, ?, ?, NULL)',
-                     (user_id, 'check_out', now_str))
+        # Ghi nhận check-out kèm toạ độ GPS
+        conn.execute('INSERT INTO time_logs (user_id, action, timestamp, area_id, latitude, longitude) VALUES (?, ?, ?, NULL, ?, ?)',
+                     (user_id, 'check_out', now_str, latitude, longitude))
         
         conn.commit()
         conn.close()
@@ -613,6 +614,8 @@ def checklist_submit_complete():
     grader_id = data.get('grader_id')
     area_id = data.get('area_id')
     items = data.get('items', []) # List of {item_id, status, captured_image, notes}
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
     
     if not grader_id or not area_id or not items:
         return jsonify({'error': 'Dữ liệu chấm không hợp lệ'}), 400
@@ -633,9 +636,9 @@ def checklist_submit_complete():
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO checklist_submissions (grader_id, area_id, timestamp, status)
-            VALUES (?, ?, ?, 'pending')
-        ''', (grader_id, area_id, now_str))
+            INSERT INTO checklist_submissions (grader_id, area_id, timestamp, status, latitude, longitude)
+            VALUES (?, ?, ?, 'pending', ?, ?)
+        ''', (grader_id, area_id, now_str, latitude, longitude))
         
         sub_id = cursor.lastrowid
         
@@ -708,13 +711,19 @@ def manager_dashboard():
                 'user_name': uname,
                 'area_name': area or '-',
                 'check_in': ts,
+                'check_in_lat': log['latitude'],
+                'check_in_lng': log['longitude'],
                 'check_out': None,
+                'check_out_lat': None,
+                'check_out_lng': None,
                 'duration': None
             })
         elif action == 'check_out':
             # Ghép vào ca check_in gần nhất chưa check_out
             if shifts_by_user[uid] and shifts_by_user[uid][-1]['check_out'] is None:
                 shifts_by_user[uid][-1]['check_out'] = ts
+                shifts_by_user[uid][-1]['check_out_lat'] = log['latitude']
+                shifts_by_user[uid][-1]['check_out_lng'] = log['longitude']
                 duration = calculate_time_duration(shifts_by_user[uid][-1]['check_in'], ts)
                 shifts_by_user[uid][-1]['duration'] = f"{duration:.2f} giờ"
             else:
@@ -723,7 +732,11 @@ def manager_dashboard():
                     'user_name': uname,
                     'area_name': area or '-',
                     'check_in': None,
+                    'check_in_lat': None,
+                    'check_in_lng': None,
                     'check_out': ts,
+                    'check_out_lat': log['latitude'],
+                    'check_out_lng': log['longitude'],
                     'duration': None
                 })
                 
@@ -1025,6 +1038,8 @@ def manager_submissions():
             'timestamp': sub['timestamp'],
             'status': sub['status'],
             'manager_notes': sub['manager_notes'],
+            'latitude': sub['latitude'],
+            'longitude': sub['longitude'],
             'details': [dict(d) for d in details]
         })
         

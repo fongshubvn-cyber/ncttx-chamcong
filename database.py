@@ -54,6 +54,8 @@ def init_db():
         action TEXT NOT NULL, -- 'check_in', 'check_out'
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         area_id INTEGER, -- Khu vực làm việc lúc check-in
+        latitude REAL,
+        longitude REAL,
         FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY(area_id) REFERENCES areas(id) ON DELETE SET NULL
     )
@@ -69,6 +71,8 @@ def init_db():
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         status TEXT DEFAULT 'pending', -- 'pending' (chờ duyệt), 'approved' (đã đạt), 'rejected' (cần làm lại)
         manager_notes TEXT,
+        latitude REAL,
+        longitude REAL,
         FOREIGN KEY(grader_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY(area_id) REFERENCES areas(id) ON DELETE CASCADE
     )
@@ -161,6 +165,32 @@ def init_db():
             (areas_map["Bán hàng"], areas_map["Pha chế"])
         ]
         cursor.executemany("INSERT INTO cross_check_rules (from_area_id, to_area_id) VALUES (?, ?)", rules_data)
+        
+    conn.commit()
+    conn.close()
+    
+    # Tự động cập nhật thêm cột định vị cho database cũ nếu chưa có
+    update_db_schema()
+
+def update_db_schema():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Kiểm tra cột trong bảng time_logs
+    cursor.execute("PRAGMA table_info(time_logs)")
+    columns = [row['name'] for row in cursor.fetchall()]
+    if 'latitude' not in columns:
+        cursor.execute("ALTER TABLE time_logs ADD COLUMN latitude REAL")
+    if 'longitude' not in columns:
+        cursor.execute("ALTER TABLE time_logs ADD COLUMN longitude REAL")
+        
+    # Kiểm tra cột trong bảng checklist_submissions
+    cursor.execute("PRAGMA table_info(checklist_submissions)")
+    columns = [row['name'] for row in cursor.fetchall()]
+    if 'latitude' not in columns:
+        cursor.execute("ALTER TABLE checklist_submissions ADD COLUMN latitude REAL")
+    if 'longitude' not in columns:
+        cursor.execute("ALTER TABLE checklist_submissions ADD COLUMN longitude REAL")
         
     conn.commit()
     conn.close()
