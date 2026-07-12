@@ -118,15 +118,44 @@ function setupEventListeners() {
     // Tải ảnh thay thế (Fallback File Input)
     document.getElementById('file-fallback-input').addEventListener('change', handleFileUploadFallback);
     
-    // Bật/tắt ảnh mẫu đè 30%
-    document.getElementById('toggle-overlay-check').addEventListener('change', (e) => {
-        const overlay = document.getElementById('camera-overlay-image');
-        if (e.target.checked) {
-            overlay.classList.remove('hide');
-        } else {
-            overlay.classList.add('hide');
-        }
-    });
+    // Điều khiển độ mờ ảnh mẫu (Opacity Slider)
+    const opacitySlider = document.getElementById('overlay-opacity-slider');
+    const opacityVal = document.getElementById('opacity-val');
+    const overlayImg = document.getElementById('camera-overlay-image');
+    
+    if (opacitySlider && opacityVal && overlayImg) {
+        opacitySlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            opacityVal.textContent = val + '%';
+            overlayImg.style.opacity = val / 100;
+            if (val > 0) {
+                overlayImg.classList.remove('hide');
+            } else {
+                overlayImg.classList.add('hide');
+            }
+        });
+    }
+
+    // Bật/Tắt lưới căn chỉnh 3x3
+    const toggleGridBtn = document.getElementById('toggle-grid-btn');
+    const gridOverlay = document.getElementById('camera-grid-overlay');
+    
+    if (toggleGridBtn && gridOverlay) {
+        toggleGridBtn.addEventListener('click', () => {
+            const isActive = toggleGridBtn.classList.toggle('active');
+            if (isActive) {
+                gridOverlay.classList.remove('hide');
+                toggleGridBtn.textContent = 'Đang BẬT';
+                toggleGridBtn.style.color = 'var(--color-primary)';
+                toggleGridBtn.style.borderColor = 'var(--color-primary)';
+            } else {
+                gridOverlay.classList.add('hide');
+                toggleGridBtn.textContent = 'Đang TẮT';
+                toggleGridBtn.style.color = 'var(--text-secondary)';
+                toggleGridBtn.style.borderColor = 'var(--border-glass)';
+            }
+        });
+    }
 
     // Gửi toàn bộ checklist
     document.getElementById('submit-all-checklist-btn').addEventListener('click', submitAllChecklist);
@@ -827,16 +856,23 @@ async function openCameraModalFor(itemId) {
     state.activeItemId = itemId;
     const item = state.checklistItems.find(i => i.id === itemId);
     
-    // 1. Thiết lập ảnh mẫu lớp phủ 30%
+    // 1. Thiết lập ảnh mẫu lớp phủ
     const overlayImg = document.getElementById('camera-overlay-image');
     if (item && item.reference_image) {
         overlayImg.src = item.reference_image;
         overlayImg.classList.remove('hide');
-        document.getElementById('toggle-overlay-check').checked = true;
+        
+        // Reset slider về 30% mặc định
+        const slider = document.getElementById('overlay-opacity-slider');
+        const opacityVal = document.getElementById('opacity-val');
+        if (slider && opacityVal) {
+            slider.value = 30;
+            opacityVal.textContent = '30%';
+        }
+        overlayImg.style.opacity = 0.3;
     } else {
         overlayImg.src = '';
         overlayImg.classList.add('hide');
-        document.getElementById('toggle-overlay-check').checked = false;
     }
     
     // 2. Mở Camera stream
@@ -944,15 +980,34 @@ function capturePhoto() {
     snapBtn.disabled = true;
     snapBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chụp...';
     
-    // Kích thước canvas bằng kích thước thật của video
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    // Kích thước canvas cố định tỉ lệ 4:3 (ví dụ 800x600) để khớp tuyệt đối với ảnh mẫu
+    canvas.width = 800;
+    canvas.height = 600;
     
-    // Vẽ ngược trục X (mirror) để ảnh chụp giống hệt những gì hiển thị trên màn hình
-    context.translate(canvas.width, 0);
-    context.scale(-1, 1);
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    context.setTransform(1, 0, 0, 1, 0, 0); // reset
+    const videoWidth = video.videoWidth || 640;
+    const videoHeight = video.videoHeight || 480;
+    const targetWidth = 800;
+    const targetHeight = 600;
+    
+    const videoRatio = videoWidth / videoHeight;
+    const targetRatio = targetWidth / targetHeight;
+    
+    let sx, sy, sWidth, sHeight;
+    if (videoRatio > targetRatio) {
+        // Luồng video rộng hơn tỉ lệ 4:3 -> Cố định chiều cao, crop 2 bên
+        sHeight = videoHeight;
+        sWidth = videoHeight * targetRatio;
+        sx = (videoWidth - sWidth) / 2;
+        sy = 0;
+    } else {
+        // Luồng video dọc/cao hơn tỉ lệ 4:3 -> Cố định chiều rộng, crop trên dưới
+        sWidth = videoWidth;
+        sHeight = videoWidth / targetRatio;
+        sx = 0;
+        sy = (videoHeight - sHeight) / 2;
+    }
+    
+    context.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
     
     canvas.toBlob(async (blob) => {
         const file = new File([blob], "webcam_capture.jpg", { type: "image/jpeg" });
@@ -1020,27 +1075,36 @@ async function compressAndUpload(file) {
             img.src = event.target.result;
             img.onload = function () {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 1024;
-                const MAX_HEIGHT = 1024;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
+                // Cố định kích thước ảnh xuất ra chuẩn tỉ lệ 4:3 của ảnh mẫu (ví dụ 800x600)
+                const targetWidth = 800;
+                const targetHeight = 600;
+                
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Tính toán crop "cover" tâm ảnh để giữ đúng tỉ lệ 4:3 không bị bóp méo hình
+                const imgWidth = img.width;
+                const imgHeight = img.height;
+                const imgRatio = imgWidth / imgHeight;
+                const targetRatio = targetWidth / targetHeight;
+                
+                let sx, sy, sWidth, sHeight;
+                if (imgRatio > targetRatio) {
+                    // Ảnh tải lên có dạng góc rộng (bè ngang) -> Crop hai bên
+                    sHeight = imgHeight;
+                    sWidth = imgHeight * targetRatio;
+                    sx = (imgWidth - sWidth) / 2;
+                    sy = 0;
+                } else {
+                    // Ảnh tải lên có dạng dọc (chân dung) -> Crop trên dưới
+                    sWidth = imgWidth;
+                    sHeight = imgWidth / targetRatio;
+                    sx = 0;
+                    sy = (imgHeight - sHeight) / 2;
+                }
+                
+                ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
 
                 canvas.toBlob(async (blob) => {
                     const compressedFile = new File([blob], file.name || "upload.jpg", {
@@ -1130,11 +1194,18 @@ async function saveItemGrade() {
         if (nextItem.reference_image) {
             overlayImg.src = nextItem.reference_image;
             overlayImg.classList.remove('hide');
-            document.getElementById('toggle-overlay-check').checked = true;
+            
+            // Reset slider về 30% mặc định
+            const slider = document.getElementById('overlay-opacity-slider');
+            const opacityVal = document.getElementById('opacity-val');
+            if (slider && opacityVal) {
+                slider.value = 30;
+                opacityVal.textContent = '30%';
+            }
+            overlayImg.style.opacity = 0.3;
         } else {
             overlayImg.src = '';
             overlayImg.classList.add('hide');
-            document.getElementById('toggle-overlay-check').checked = false;
         }
         
         // Khởi động lại UI cho mục mới
