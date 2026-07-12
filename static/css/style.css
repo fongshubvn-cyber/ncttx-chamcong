@@ -1432,6 +1432,148 @@ select.form-control {
 
 /* Responsive Mobile View Adjustments */
 @media (max-width: 576px) {
+    /* 1. Base Container & Card spacings */
+    .container {
+        padding: 0 12px !important;
+    }
+    .staff-layout, .manager-layout {
+        margin-top: 16px !important;
+        gap: 16px !important;
+    }
+    .card {
+        padding: 18px 14px !important;
+    }
+
+    /* 2. App Header Stacking (Logo, Logout on top; User profile full-width below) */
+    .app-header {
+        padding: 12px 14px !important;
+        display: grid !important;
+        grid-template-areas: 
+            "logo logout"
+            "user user" !important;
+        grid-template-columns: 1fr auto !important;
+        gap: 12px !important;
+        align-items: center !important;
+    }
+    .header-left {
+        display: contents !important;
+    }
+    .header-logo {
+        grid-area: logo !important;
+        height: 38px !important;
+    }
+    .header-actions {
+        grid-area: logout !important;
+    }
+    .user-info-bar {
+        grid-area: user !important;
+        border-top: 1px dashed var(--border-glass) !important;
+        padding-top: 10px !important;
+        gap: 10px !important;
+        width: 100% !important;
+    }
+    .user-avatar {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.1rem !important;
+    }
+    .user-info-bar div {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .user-info-bar h2 {
+        font-size: 0.95rem !important;
+        line-height: 1.2;
+    }
+    .badge-role {
+        align-self: flex-start;
+        font-size: 0.7rem !important;
+        padding: 2px 8px !important;
+    }
+
+    /* 3. Stretched full-width tabs segment nav */
+    .tab-nav {
+        align-self: stretch !important;
+        display: flex !important;
+        width: 100% !important;
+        padding: 4px !important;
+        gap: 4px !important;
+    }
+    .tab-btn {
+        flex: 1 !important;
+        padding: 10px 6px !important;
+        font-size: 0.8rem !important;
+        justify-content: center !important;
+        white-space: nowrap !important;
+        border-radius: var(--radius-sm) !important;
+    }
+    .tab-btn i {
+        font-size: 0.9rem !important;
+    }
+
+    /* 4. Login Clean Card */
+    .login-card-clean {
+        padding: 32px 20px !important;
+        margin: 0 10px !important;
+    }
+    .login-title {
+        font-size: 1.35rem !important;
+    }
+    .login-subtitle {
+        font-size: 0.85rem !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* 5. Clock sizes in Chấm Công screen */
+    .clock-display {
+        font-size: 2.2rem !important;
+        margin: 10px 0 !important;
+    }
+    .clock-date {
+        font-size: 0.85rem !important;
+        margin-bottom: 16px !important;
+    }
+    .btn-checkin {
+        padding: 12px 20px !important;
+        font-size: 1rem !important;
+        width: 100% !important;
+    }
+
+    /* 6. Checklist layout & card spacing */
+    .checklist-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .checklist-card {
+        padding: 16px 12px !important;
+        gap: 12px !important;
+    }
+
+    /* 7. Swipeable horizontal Manager sidebar navigation */
+    .sidebar {
+        padding: 6px !important;
+        margin-bottom: 8px !important;
+        width: 100% !important;
+        border-radius: var(--radius-md) !important;
+    }
+    .sidebar-nav {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        gap: 8px !important;
+        padding-bottom: 4px !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    .sidebar-btn {
+        white-space: nowrap !important;
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+        flex-shrink: 0 !important;
+        border-radius: var(--radius-sm) !important;
+        gap: 6px !important;
+    }
+
+    /* 8. Modals, camera, sheets */
     .modal {
         padding: 0;
         align-items: flex-end; /* Slides up like native iOS/Android sheet */
