@@ -613,7 +613,7 @@ select.form-control {
 
 .checklist-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
 }
 
@@ -1428,4 +1428,51 @@ select.form-control {
     padding: 2px 6px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
     border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive Mobile View Adjustments */
+@media (max-width: 576px) {
+    .modal {
+        padding: 0;
+        align-items: flex-end; /* Slides up like native iOS/Android sheet */
+    }
+    .modal-content {
+        max-height: 95vh;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: 20px 16px;
+    }
+    .camera-modal-content {
+        max-height: 100vh;
+        height: 100%;
+        border-radius: 0;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+    }
+    .camera-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    .camera-preview-container {
+        aspect-ratio: 4/3;
+        max-height: 42vh; /* Lock height on mobile to prevent overflow */
+        margin: 0 auto;
+    }
+    .camera-controls {
+        margin-top: 10px;
+        gap: 6px;
+    }
+    .control-alignment-tools {
+        padding: 10px;
+        gap: 10px;
+    }
+    .control-buttons {
+        gap: 6px;
+    }
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
 }
