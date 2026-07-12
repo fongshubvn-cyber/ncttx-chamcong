@@ -17,7 +17,10 @@ let state = {
     capturedImageUrl: null,  // URL ảnh đã chụp/upload thành công
     
     // Phê duyệt
-    activeReviewSubmission: null // Lượt submission đang được xem để duyệt
+    activeReviewSubmission: null, // Lượt submission đang được xem để duyệt
+    
+    // GPS Geolocation
+    gpsLocation: null
 };
 
 // ================= KHỞI TẠO KHI TẢI TRANG =================
@@ -576,13 +579,16 @@ async function handleClockToggle() {
     btn.disabled = true;
     try {
         if (action === 'check_in') {
+            const gps = await getGPSLocation();
             const res = await fetch('/api/time_logs/toggle', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_id: state.currentUser.id,
                     action: 'check_in',
-                    area_id: areaId
+                    area_id: areaId,
+                    latitude: gps ? gps.latitude : null,
+                    longitude: gps ? gps.longitude : null
                 })
             });
             
@@ -632,12 +638,15 @@ async function executeCheckout() {
     confirmBtn.textContent = 'Đang check-out...';
     
     try {
+        const gps = await getGPSLocation();
         const res = await fetch('/api/time_logs/toggle', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 user_id: state.currentUser.id,
-                action: 'check_out'
+                action: 'check_out',
+                latitude: gps ? gps.latitude : null,
+                longitude: gps ? gps.longitude : null
             })
         });
         
@@ -826,13 +835,16 @@ async function submitAllChecklist() {
             notes: state.submissionState[itemId].notes
         }));
         
+        const gps = await getGPSLocation();
         const response = await fetch('/api/checklist/submit_complete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 grader_id: state.currentUser.id,
                 area_id: state.assignedArea.id,
-                items: itemsPayload
+                items: itemsPayload,
+                latitude: gps ? gps.latitude : null,
+                longitude: gps ? gps.longitude : null
             })
         });
         
@@ -853,6 +865,12 @@ async function submitAllChecklist() {
 
 // ================= CAMERA & OVERLAY SYSTEM LOGIC =================
 async function openCameraModalFor(itemId) {
+    // Khởi tạo chạy ngầm lấy GPS để dùng ngay khi chụp
+    state.gpsLocation = null;
+    getGPSLocation().then(gps => {
+        state.gpsLocation = gps;
+    });
+    
     state.activeItemId = itemId;
     const item = state.checklistItems.find(i => i.id === itemId);
     
@@ -1009,6 +1027,10 @@ function capturePhoto() {
     
     context.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
     
+    // Đóng dấu Watermark thời gian & toạ độ GPS
+    const gpsStr = state.gpsLocation ? `${state.gpsLocation.latitude}, ${state.gpsLocation.longitude}` : '';
+    drawWatermark(context, targetWidth, targetHeight, gpsStr);
+    
     canvas.toBlob(async (blob) => {
         const file = new File([blob], "webcam_capture.jpg", { type: "image/jpeg" });
         await uploadCapturedFile(file);
@@ -1105,6 +1127,10 @@ async function compressAndUpload(file) {
                 }
                 
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+                
+                // Đóng dấu Watermark thời gian & toạ độ GPS
+                const gpsStr = state.gpsLocation ? `${state.gpsLocation.latitude}, ${state.gpsLocation.longitude}` : '';
+                drawWatermark(ctx, targetWidth, targetHeight, gpsStr);
 
                 canvas.toBlob(async (blob) => {
                     const compressedFile = new File([blob], file.name || "upload.jpg", {
@@ -1272,12 +1298,25 @@ async function loadManagerDashboardData() {
                 durationText = '<span class="text-muted">-</span>';
             }
             
+            // Tạo liên kết bản đồ Google Maps cho Check-in và Check-out
+            let gpsHtml = '';
+            if (shift.check_in_lat && shift.check_in_lng) {
+                gpsHtml += `<a href="https://www.google.com/maps?q=${shift.check_in_lat},${shift.check_in_lng}" target="_blank" class="badge badge-info" style="display:inline-block; margin-right:4px;"><i class="fa-solid fa-location-dot"></i> Vào ca</a>`;
+            }
+            if (shift.check_out_lat && shift.check_out_lng) {
+                gpsHtml += `<a href="https://www.google.com/maps?q=${shift.check_out_lat},${shift.check_out_lng}" target="_blank" class="badge badge-warning" style="display:inline-block;"><i class="fa-solid fa-location-dot"></i> Ra ca</a>`;
+            }
+            if (!gpsHtml) {
+                gpsHtml = '<span class="text-muted">-</span>';
+            }
+            
             tr.innerHTML = `
                 <td><strong>${shift.user_name}</strong></td>
                 <td>${shift.area_name}</td>
                 <td>${checkInTime}</td>
                 <td>${checkOutTime}</td>
                 <td>${durationText}</td>
+                <td>${gpsHtml}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -1432,6 +1471,11 @@ async function loadChecklistSubmissions(status) {
                 
             const managerNotesText = sub.manager_notes ? `<p class="text-muted text-small"><strong>Phản hồi:</strong> ${sub.manager_notes}</p>` : '';
             
+            let gpsHtml = '';
+            if (sub.latitude && sub.longitude) {
+                gpsHtml = `<span><i class="fa-solid fa-location-dot text-primary"></i> <a href="https://www.google.com/maps?q=${sub.latitude},${sub.longitude}" target="_blank" style="color: var(--color-primary); text-decoration: underline; font-weight: bold;">Bản đồ GPS</a></span>`;
+            }
+            
             card.innerHTML = `
                 <div class="submission-row-header">
                     <div>
@@ -1439,6 +1483,7 @@ async function loadChecklistSubmissions(status) {
                         <div class="sub-meta-info text-muted text-small margin-top-xs">
                             <span><i class="fa-solid fa-user"></i> Người chấm: <strong>${sub.grader_name}</strong></span>
                             <span><i class="fa-solid fa-calendar"></i> Ngày: ${sub.timestamp}</span>
+                            ${gpsHtml}
                         </div>
                     </div>
                     <div>
@@ -1485,6 +1530,18 @@ async function openReviewModal(submissionId) {
         document.getElementById('rev-area-name').textContent = sub.area_name;
         document.getElementById('rev-timestamp').textContent = sub.timestamp;
         document.getElementById('review-notes').value = sub.manager_notes || '';
+        
+        // Đổ dữ liệu định vị GPS
+        const gpsWrapper = document.getElementById('rev-gps-wrapper');
+        const gpsLink = document.getElementById('rev-gps-link');
+        if (gpsWrapper && gpsLink) {
+            if (sub.latitude && sub.longitude) {
+                gpsLink.innerHTML = `<a href="https://www.google.com/maps?q=${sub.latitude},${sub.longitude}" target="_blank" style="color: var(--color-primary); font-weight: bold; text-decoration: underline;"><i class="fa-solid fa-location-dot"></i> Xem trên bản đồ (Toạ độ: ${sub.latitude}, ${sub.longitude})</a>`;
+                gpsWrapper.classList.remove('hide');
+            } else {
+                gpsWrapper.classList.add('hide');
+            }
+        }
         
         // Ẩn hiện các nút duyệt tùy thuộc vào trạng thái
         const actionPanel = document.querySelector('.review-action-panel');
@@ -2111,4 +2168,52 @@ async function deleteChecklistItem(id, areaId) {
     } catch (e) {
         alert(e.message);
     }
+}
+
+// ================= GEOLOCATION & WATERMARK HELPERS =================
+function getGPSLocation() {
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+            console.warn("Trình duyệt không hỗ trợ định vị GPS.");
+            resolve(null);
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const gps = {
+                    latitude: position.coords.latitude.toFixed(6),
+                    longitude: position.coords.longitude.toFixed(6)
+                };
+                resolve(gps);
+            },
+            (error) => {
+                console.warn("Lỗi GPS:", error);
+                resolve(null);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+    });
+}
+
+function drawWatermark(ctx, width, height, gpsStr) {
+    const now = new Date();
+    const dateStr = now.getDate().toString().padStart(2, '0') + '/' + 
+                    (now.getMonth() + 1).toString().padStart(2, '0') + '/' + 
+                    now.getFullYear();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                    now.getMinutes().toString().padStart(2, '0') + ':' + 
+                    now.getSeconds().toString().padStart(2, '0');
+    
+    const watermarkText = `THỜI GIAN: ${dateStr} ${timeStr}` + (gpsStr ? ` | GPS: ${gpsStr}` : '');
+    
+    // Vẽ thanh nền bán trong suốt ở đáy ảnh
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(0, height - 32, width, 32);
+    
+    // Vẽ text thời gian & toạ độ
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(watermarkText, 12, height - 16);
 }
