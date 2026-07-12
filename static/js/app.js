@@ -983,7 +983,7 @@ function stopCameraStream() {
 }
 
 // Chụp ảnh từ luồng video
-function capturePhoto() {
+async function capturePhoto() {
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('capture-canvas');
     const context = canvas.getContext('2d');
@@ -1027,8 +1027,22 @@ function capturePhoto() {
     
     context.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
     
+    // Chờ lấy toạ độ GPS nếu chưa có sẵn từ luồng chạy ngầm (đợi tối đa 1.5 giây)
+    let gpsStr = '';
+    if (state.gpsLocation) {
+        gpsStr = `${state.gpsLocation.latitude}, ${state.gpsLocation.longitude}`;
+    } else {
+        const gps = await Promise.race([
+            getGPSLocation(),
+            new Promise(resolve => setTimeout(() => resolve(null), 1500))
+        ]);
+        if (gps) {
+            state.gpsLocation = gps;
+            gpsStr = `${gps.latitude}, ${gps.longitude}`;
+        }
+    }
+    
     // Đóng dấu Watermark thời gian & toạ độ GPS
-    const gpsStr = state.gpsLocation ? `${state.gpsLocation.latitude}, ${state.gpsLocation.longitude}` : '';
     drawWatermark(context, targetWidth, targetHeight, gpsStr);
     
     canvas.toBlob(async (blob) => {
@@ -1095,7 +1109,7 @@ async function compressAndUpload(file) {
         reader.onload = function (event) {
             const img = new Image();
             img.src = event.target.result;
-            img.onload = function () {
+            img.onload = async function () {
                 const canvas = document.createElement('canvas');
                 // Cố định kích thước ảnh xuất ra chuẩn tỉ lệ 4:3 của ảnh mẫu (ví dụ 800x600)
                 const targetWidth = 800;
@@ -1128,8 +1142,22 @@ async function compressAndUpload(file) {
                 
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
                 
+                // Chờ lấy toạ độ GPS nếu chưa có sẵn từ luồng chạy ngầm (đợi tối đa 1.5 giây)
+                let gpsStr = '';
+                if (state.gpsLocation) {
+                    gpsStr = `${state.gpsLocation.latitude}, ${state.gpsLocation.longitude}`;
+                } else {
+                    const gps = await Promise.race([
+                        getGPSLocation(),
+                        new Promise(resolve => setTimeout(() => resolve(null), 1500))
+                    ]);
+                    if (gps) {
+                        state.gpsLocation = gps;
+                        gpsStr = `${gps.latitude}, ${gps.longitude}`;
+                    }
+                }
+                
                 // Đóng dấu Watermark thời gian & toạ độ GPS
-                const gpsStr = state.gpsLocation ? `${state.gpsLocation.latitude}, ${state.gpsLocation.longitude}` : '';
                 drawWatermark(ctx, targetWidth, targetHeight, gpsStr);
 
                 canvas.toBlob(async (blob) => {
