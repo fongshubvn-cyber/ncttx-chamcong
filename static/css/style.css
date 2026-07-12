@@ -1099,10 +1099,9 @@ select.form-control {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* Mirror camera for more intuitive usage */
 }
 
-/* Reference image overlay 30% */
+/* Reference image overlay */
 .camera-ref-overlay {
     position: absolute;
     top: 0;
@@ -1111,12 +1110,94 @@ select.form-control {
     height: 100%;
     object-fit: cover;
     pointer-events: none; /* Let clicks pass through to video */
-    transition: opacity var(--transition-fast);
+    transition: opacity 0.15s ease;
     z-index: 5;
 }
 
-.opacity-30 {
-    opacity: 0.3 !important;
+/* Photographic 3x3 Grid Overlay */
+.camera-grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    transition: opacity var(--transition-fast);
+}
+
+.camera-grid-overlay div {
+    border: 0.5px dashed rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+/* Alignment tools controls block */
+.control-alignment-tools {
+    background: rgba(0, 0, 0, 0.02);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.tool-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tool-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Custom Styled Range Slider */
+.opacity-range-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 9999px;
+    background: #e2e8f0;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.opacity-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease;
+}
+
+.opacity-range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.opacity-range-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease;
+    cursor: pointer;
 }
 
 .captured-preview {
