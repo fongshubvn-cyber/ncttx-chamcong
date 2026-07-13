@@ -1025,11 +1025,11 @@ def manager_submissions():
     res = []
     for sub in subs:
         details = conn.execute('''
-            SELECT d.*, i.task_name, i.reference_image
-            FROM checklist_submission_details d
-            JOIN checklist_items i ON d.item_id = i.id
-            WHERE d.submission_id = ?
-        ''', (sub['id'],)).fetchall()
+            SELECT i.task_name, i.reference_image, d.status, d.captured_image, d.notes, d.id as detail_id
+            FROM checklist_items i
+            LEFT JOIN checklist_submission_details d ON i.id = d.item_id AND d.submission_id = ?
+            WHERE i.area_id = ?
+        ''', (sub['id'], sub['area_id'])).fetchall()
         
         res.append({
             'id': sub['id'],
