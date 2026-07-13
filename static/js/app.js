@@ -138,13 +138,29 @@ function setupEventListeners() {
             }
         });
         
-        // Sự kiện load để tính toán tỷ lệ khung hình thực tế của ảnh mẫu
-        overlayImg.addEventListener('load', () => {
-            if (overlayImg.naturalWidth && overlayImg.naturalHeight) {
-                const ratio = overlayImg.naturalWidth / overlayImg.naturalHeight;
-                updateCameraAspectRatio(ratio);
-            }
-        });
+        // Bấm vào ảnh vừa chụp để xem phóng to
+        const previewImg = document.getElementById('captured-preview');
+        if (previewImg) {
+            previewImg.addEventListener('click', () => {
+                if (previewImg.src) {
+                    openLightbox(previewImg.src, 'Ảnh thực tế vừa chụp');
+                }
+            });
+        }
+        
+        // Sự kiện đóng Lightbox phóng to ảnh
+        const closeLightboxBtn = document.getElementById('close-lightbox-btn');
+        if (closeLightboxBtn) {
+            closeLightboxBtn.addEventListener('click', closeLightbox);
+        }
+        const lightboxModal = document.getElementById('lightbox-modal');
+        if (lightboxModal) {
+            lightboxModal.addEventListener('click', (e) => {
+                if (e.target === lightboxModal) {
+                    closeLightbox();
+                }
+            });
+        }
     }
 
     // Bật/Tắt lưới căn chỉnh 3x3
@@ -755,7 +771,7 @@ function renderChecklistCards() {
         let previewHtml = '';
         if (item.reference_image) {
             previewHtml = `
-                <div class="reference-preview">
+                <div class="reference-preview" onclick="openLightbox('${item.reference_image}', 'Ảnh mẫu tiêu chuẩn: ${item.task_name}')" style="cursor: pointer;">
                     <span class="preview-badge">ẢNH MẪU TIÊU CHUẨN</span>
                     <img src="${item.reference_image}" alt="Reference standard" onerror="this.outerHTML='<div class=&quot;img-placeholder-svg&quot;><i class=&quot;fa-solid fa-image&quot;></i>Lỗi tải ảnh mẫu</div>'">
                 </div>
@@ -779,7 +795,7 @@ function renderChecklistCards() {
             
             gradingStatusHtml = `
                 <div class="grading-result-badge ${statusClass}">
-                    <img src="${graded.captured_image}" class="grading-result-thumb" alt="Captured" onclick="window.open('${graded.captured_image}')">
+                    <img src="${graded.captured_image}" class="grading-result-thumb" alt="Captured" onclick="openLightbox('${graded.captured_image}', 'Ảnh thực tế: ${item.task_name}')" style="cursor: pointer;">
                     <div>
                         <strong>${statusText}</strong>
                         ${notesText}
@@ -905,8 +921,10 @@ async function openCameraModalFor(itemId) {
     } else {
         overlayImg.src = '';
         overlayImg.classList.add('hide');
-        updateCameraAspectRatio(4/3);
     }
+    
+    // Cố định tỉ lệ đứng 3:4 cho camera preview
+    updateCameraAspectRatio(3/4);
     
     // 2. Mở Camera stream
     const video = document.getElementById('webcam');
@@ -1013,16 +1031,10 @@ async function capturePhoto() {
     snapBtn.disabled = true;
     snapBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chụp...';
     
-    // Kích thước canvas tự động theo tỉ lệ của ảnh mẫu (ví dụ: 4:3 hoặc 3:4)
-    const targetRatio = state.activeAspectRatio || (4/3);
-    let targetWidth, targetHeight;
-    if (targetRatio >= 1) {
-        targetWidth = 800;
-        targetHeight = Math.round(800 / targetRatio);
-    } else {
-        targetHeight = 800;
-        targetWidth = Math.round(800 * targetRatio);
-    }
+    // Kích thước canvas cố định tỉ lệ đứng 3:4 (ví dụ 600x800) để đồng bộ mọi màn hình
+    const targetRatio = 3/4;
+    const targetWidth = 600;
+    const targetHeight = 800;
     
     canvas.width = targetWidth;
     canvas.height = targetHeight;
@@ -1132,16 +1144,10 @@ async function compressAndUpload(file) {
             const img = new Image();
             img.src = event.target.result;
             img.onload = async function () {
-                // Tỉ lệ ảnh xuất ra dựa theo tỉ lệ của ảnh mẫu
-                const targetRatio = state.activeAspectRatio || (4/3);
-                let targetWidth, targetHeight;
-                if (targetRatio >= 1) {
-                    targetWidth = 800;
-                    targetHeight = Math.round(800 / targetRatio);
-                } else {
-                    targetHeight = 800;
-                    targetWidth = Math.round(800 * targetRatio);
-                }
+                // Tỉ lệ đứng 3:4 xuất ra cho ảnh nén
+                const targetRatio = 3/4;
+                const targetWidth = 600;
+                const targetHeight = 800;
                 
                 canvas.width = targetWidth;
                 canvas.height = targetHeight;
@@ -1287,8 +1293,10 @@ async function saveItemGrade() {
         } else {
             overlayImg.src = '';
             overlayImg.classList.add('hide');
-            updateCameraAspectRatio(4/3);
         }
+        
+        // Cố định tỉ lệ đứng 3:4 cho camera preview của mục kế tiếp
+        updateCameraAspectRatio(3/4);
         
         // Khởi động lại UI cho mục mới
         resetCameraModalUI();
@@ -1633,7 +1641,7 @@ async function openReviewModal(submissionId) {
             
             let refImgHtml = '';
             if (item.reference_image) {
-                refImgHtml = `<img src="${item.reference_image}" class="compare-img" alt="Ảnh mẫu" onclick="window.open('${item.reference_image}')">`;
+                refImgHtml = `<img src="${item.reference_image}" class="compare-img" alt="Ảnh mẫu" onclick="openLightbox('${item.reference_image}', 'Ảnh mẫu tiêu chuẩn: ${item.task_name}')" style="cursor: pointer;">`;
             } else {
                 refImgHtml = `
                     <div class="compare-img img-placeholder-svg">
@@ -1645,7 +1653,7 @@ async function openReviewModal(submissionId) {
             
             let capImgHtml = '';
             if (item.captured_image) {
-                capImgHtml = `<img src="${item.captured_image}" class="compare-img" alt="Ảnh chụp thực tế" onclick="window.open('${item.captured_image}')">`;
+                capImgHtml = `<img src="${item.captured_image}" class="compare-img" alt="Ảnh chụp thực tế" onclick="openLightbox('${item.captured_image}', 'Ảnh thực tế: ${item.task_name}')" style="cursor: pointer;">`;
             } else {
                 capImgHtml = `
                     <div class="compare-img img-placeholder-svg" style="background-color: rgba(255,255,255,0.02); color: var(--text-muted); font-size: 0.85rem; flex-direction: column; gap: 6px;">
@@ -2301,7 +2309,26 @@ function drawWatermark(ctx, width, height, gpsStr) {
 function updateCameraAspectRatio(ratio) {
     const container = document.querySelector('.camera-preview-container');
     if (container) {
-        container.style.aspectRatio = ratio.toString();
+        container.style.aspectRatio = '3/4'; // Cố định cứng tỉ lệ đứng 3:4 cho điện thoại
     }
-    state.activeAspectRatio = ratio;
+    state.activeAspectRatio = 3/4;
+}
+
+function openLightbox(src, caption = '') {
+    const modal = document.getElementById('lightbox-modal');
+    const img = document.getElementById('lightbox-img');
+    const captionText = document.getElementById('lightbox-caption');
+    
+    if (modal && img) {
+        img.src = src;
+        if (captionText) captionText.textContent = caption;
+        modal.classList.add('active');
+    }
+}
+
+function closeLightbox() {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }

@@ -11,7 +11,7 @@
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style Sheet -->
-    <link rel="stylesheet" href="/static/css/style.css?v=1.1">
+    <link rel="stylesheet" href="/static/css/style.css?v=1.2">
 </head>
 <body class="dark-theme">
     <div id="app-container">
@@ -677,7 +677,14 @@
         </div>
     </div>
 
+    <!-- Built-in Lightbox / Image Viewer Modal -->
+    <div id="lightbox-modal" class="modal lightbox-modal" style="z-index: 9999;">
+        <span class="close-lightbox" id="close-lightbox-btn">&times;</span>
+        <img class="lightbox-content" id="lightbox-img" src="" alt="Zoomed view">
+        <div id="lightbox-caption" class="lightbox-caption"></div>
+    </div>
+
     <!-- JavaScript Files -->
-    <script src="/static/js/app.js?v=1.1"></script>
+    <script src="/static/js/app.js?v=1.2"></script>
 </body>
 </html>
