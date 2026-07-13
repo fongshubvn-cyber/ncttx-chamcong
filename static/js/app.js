@@ -137,6 +137,14 @@ function setupEventListeners() {
                 overlayImg.classList.add('hide');
             }
         });
+        
+        // Sự kiện load để tính toán tỷ lệ khung hình thực tế của ảnh mẫu
+        overlayImg.addEventListener('load', () => {
+            if (overlayImg.naturalWidth && overlayImg.naturalHeight) {
+                const ratio = overlayImg.naturalWidth / overlayImg.naturalHeight;
+                updateCameraAspectRatio(ratio);
+            }
+        });
     }
 
     // Bật/Tắt lưới căn chỉnh 3x3
@@ -897,6 +905,7 @@ async function openCameraModalFor(itemId) {
     } else {
         overlayImg.src = '';
         overlayImg.classList.add('hide');
+        updateCameraAspectRatio(4/3);
     }
     
     // 2. Mở Camera stream
@@ -1004,17 +1013,24 @@ async function capturePhoto() {
     snapBtn.disabled = true;
     snapBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chụp...';
     
-    // Kích thước canvas cố định tỉ lệ 4:3 (ví dụ 800x600) để khớp tuyệt đối với ảnh mẫu
-    canvas.width = 800;
-    canvas.height = 600;
+    // Kích thước canvas tự động theo tỉ lệ của ảnh mẫu (ví dụ: 4:3 hoặc 3:4)
+    const targetRatio = state.activeAspectRatio || (4/3);
+    let targetWidth, targetHeight;
+    if (targetRatio >= 1) {
+        targetWidth = 800;
+        targetHeight = Math.round(800 / targetRatio);
+    } else {
+        targetHeight = 800;
+        targetWidth = Math.round(800 * targetRatio);
+    }
+    
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
     
     const videoWidth = video.videoWidth || 640;
     const videoHeight = video.videoHeight || 480;
-    const targetWidth = 800;
-    const targetHeight = 600;
     
     const videoRatio = videoWidth / videoHeight;
-    const targetRatio = targetWidth / targetHeight;
     
     let sx, sy, sWidth, sHeight;
     if (videoRatio > targetRatio) {
@@ -1116,20 +1132,25 @@ async function compressAndUpload(file) {
             const img = new Image();
             img.src = event.target.result;
             img.onload = async function () {
-                const canvas = document.createElement('canvas');
-                // Cố định kích thước ảnh xuất ra chuẩn tỉ lệ 4:3 của ảnh mẫu (ví dụ 800x600)
-                const targetWidth = 800;
-                const targetHeight = 600;
+                // Tỉ lệ ảnh xuất ra dựa theo tỉ lệ của ảnh mẫu
+                const targetRatio = state.activeAspectRatio || (4/3);
+                let targetWidth, targetHeight;
+                if (targetRatio >= 1) {
+                    targetWidth = 800;
+                    targetHeight = Math.round(800 / targetRatio);
+                } else {
+                    targetHeight = 800;
+                    targetWidth = Math.round(800 * targetRatio);
+                }
                 
                 canvas.width = targetWidth;
                 canvas.height = targetHeight;
                 const ctx = canvas.getContext('2d');
                 
-                // Tính toán crop "cover" tâm ảnh để giữ đúng tỉ lệ 4:3 không bị bóp méo hình
+                // Tính toán crop "cover" tâm ảnh để giữ đúng tỉ lệ không bị bóp méo hình
                 const imgWidth = img.width;
                 const imgHeight = img.height;
                 const imgRatio = imgWidth / imgHeight;
-                const targetRatio = targetWidth / targetHeight;
                 
                 let sx, sy, sWidth, sHeight;
                 if (imgRatio > targetRatio) {
@@ -1266,6 +1287,7 @@ async function saveItemGrade() {
         } else {
             overlayImg.src = '';
             overlayImg.classList.add('hide');
+            updateCameraAspectRatio(4/3);
         }
         
         // Khởi động lại UI cho mục mới
@@ -2274,4 +2296,12 @@ function drawWatermark(ctx, width, height, gpsStr) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(watermarkText, 12, height - 16);
+}
+
+function updateCameraAspectRatio(ratio) {
+    const container = document.querySelector('.camera-preview-container');
+    if (container) {
+        container.style.aspectRatio = ratio.toString();
+    }
+    state.activeAspectRatio = ratio;
 }
