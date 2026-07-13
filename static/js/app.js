@@ -811,9 +811,8 @@ function checkChecklistCompleteness() {
         return;
     }
     
-    // Nếu tất cả hạng mục đã được chấm trong state.submissionState
-    const allGraded = state.checklistItems.every(item => state.submissionState[item.id]);
-    if (allGraded && state.checklistItems.length > 0) {
+    // Luôn hiển thị nút Gửi nếu đang được phân công chấm chéo
+    if (state.assignedArea && state.checklistItems && state.checklistItems.length > 0) {
         submitBar.classList.remove('hide');
     } else {
         submitBar.classList.add('hide');
@@ -821,7 +820,14 @@ function checkChecklistCompleteness() {
 }
 
 async function submitAllChecklist() {
-    if (!confirm('Bạn chắc chắn muốn gửi toàn bộ kết quả checklist này? Sau khi gửi sẽ chờ quản lý phê duyệt.')) return;
+    const gradedCount = Object.keys(state.submissionState).length;
+    if (gradedCount === 0) {
+        alert('Vui lòng thực hiện chấm điểm ít nhất 1 hạng mục trước khi gửi báo cáo.');
+        return;
+    }
+    
+    const totalCount = state.checklistItems.length;
+    if (!confirm(`Bạn chắc chắn muốn gửi báo cáo checklist này? (Đã chấm ${gradedCount}/${totalCount} hạng mục). Kết quả sẽ được lưu và gửi lên cloud để Quản lý phê duyệt.`)) return;
     
     const submitBtn = document.getElementById('submit-all-checklist-btn');
     submitBtn.disabled = true;
@@ -859,7 +865,7 @@ async function submitAllChecklist() {
         alert(e.message);
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> GỬI TOÀN BỘ ĐÁNH GIÁ CHẤM CHÉO';
+        submitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> GỬI CHECKLIST & LƯU LÊN CLOUD';
     }
 }
 
@@ -1587,9 +1593,21 @@ async function openReviewModal(submissionId) {
             const itemRow = document.createElement('div');
             itemRow.className = 'review-item-row';
             
-            const gradeText = item.status === 'pass' ? 'ĐẠT (SẠCH SẼ)' : 'KHÔNG ĐẠT (CẦN VỆ SINH LẠI)';
-            const gradeClass = item.status === 'pass' ? 'text-success' : 'text-danger';
-            const notesText = item.notes ? `Ghi chú nhân viên: "${item.notes}"` : 'Nhân viên không để lại ghi chú.';
+            // Hỗ trợ trường hợp chưa chấm điểm mục này (status = null)
+            let gradeText = '';
+            let gradeClass = '';
+            if (item.status === 'pass') {
+                gradeText = 'ĐẠT (SẠCH SẼ)';
+                gradeClass = 'text-success';
+            } else if (item.status === 'fail') {
+                gradeText = 'KHÔNG ĐẠT (CẦN VỆ SINH LẠI)';
+                gradeClass = 'text-danger';
+            } else {
+                gradeText = 'CHƯA ĐÁNH GIÁ (BỎ QUA)';
+                gradeClass = 'text-muted';
+            }
+            
+            const notesText = item.notes ? `Ghi chú nhân viên: "${item.notes}"` : (item.status ? 'Nhân viên không để lại ghi chú.' : '-');
             
             let refImgHtml = '';
             if (item.reference_image) {
@@ -1603,6 +1621,18 @@ async function openReviewModal(submissionId) {
                 `;
             }
             
+            let capImgHtml = '';
+            if (item.captured_image) {
+                capImgHtml = `<img src="${item.captured_image}" class="compare-img" alt="Ảnh chụp thực tế" onclick="window.open('${item.captured_image}')">`;
+            } else {
+                capImgHtml = `
+                    <div class="compare-img img-placeholder-svg" style="background-color: rgba(255,255,255,0.02); color: var(--text-muted); font-size: 0.85rem; flex-direction: column; gap: 6px;">
+                        <i class="fa-solid fa-camera" style="font-size: 1.5rem;"></i>
+                        <span>Chưa thực hiện chụp</span>
+                    </div>
+                `;
+            }
+            
             itemRow.innerHTML = `
                 <div class="review-item-title">${index + 1}. ${item.task_name}</div>
                 <div class="review-images-compare">
@@ -1611,8 +1641,8 @@ async function openReviewModal(submissionId) {
                         ${refImgHtml}
                     </div>
                     <div class="compare-box">
-                        <span>Ảnh thực tế chụp đè (30% mờ camera):</span>
-                        <img src="${item.captured_image}" class="compare-img" alt="Ảnh chụp thực tế" onclick="window.open('${item.captured_image}')">
+                        <span>Ảnh thực tế chụp:</span>
+                        ${capImgHtml}
                     </div>
                 </div>
                 <div class="review-item-status-notes margin-top-sm">
