@@ -1087,12 +1087,14 @@ select.form-control {
 
 .camera-preview-container {
     width: 100%;
+    max-width: 360px;
     aspect-ratio: 3/4;
     border-radius: var(--radius-lg);
     overflow: hidden;
     position: relative;
     background-color: #cbd5e1;
     border: 1px solid var(--border-glass);
+    margin: 0 auto;
 }
 
 .webcam-feed {
@@ -1598,9 +1600,11 @@ select.form-control {
         overflow-y: auto;
     }
     .camera-preview-container {
-        aspect-ratio: 3/4;
-        max-height: 42vh; /* Lock height on mobile to prevent overflow */
-        margin: 0 auto;
+        aspect-ratio: 3/4 !important;
+        width: auto !important;
+        height: 42vh !important;
+        max-height: 42vh !important;
+        margin: 0 auto !important;
     }
     .camera-controls {
         margin-top: 10px;
